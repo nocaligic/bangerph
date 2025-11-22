@@ -1,5 +1,6 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
-import { AnalysisResult } from "../types";
+import { AnalysisResult, MarketCategory } from "../types";
 
 const apiKey = process.env.API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
@@ -18,12 +19,13 @@ export const analyzeVirality = async (tweetContent: string): Promise<AnalysisRes
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: `Analyze the viral potential of this tweet content for a prediction market called 'BANGR'.
+      We need to determine if this content is worth betting on.
       
       Tweet Content: "${tweetContent}"
       
       Provide a JSON response with:
       - hypeScore (integer 0-100)
-      - reasoning (string, keep it short, punchy, gen-z slang, neo-brutalist style)
+      - reasoning (string, keep it short, punchy, gen-z slang, neo-brutalist style. Focus on "Alpha" or "Cringe" factors.)
       - verdict (string, must be exactly one of: "BANG", "FLOP", "MID")
       `,
       config: {
@@ -54,12 +56,12 @@ export const analyzeVirality = async (tweetContent: string): Promise<AnalysisRes
   }
 };
 
-export const generateMarketDetails = async (tweetContent: string): Promise<{ title: string; description: string; category: 'TECH' | 'MEME' | 'POLITICS' | 'CRYPTO' }> => {
+export const generateMarketDetails = async (tweetContent: string): Promise<{ title: string; description: string; category: MarketCategory }> => {
   if (!apiKey) {
     return {
       title: "Simulated Market Title based on Tweet",
       description: "This is a simulated description because the API key is missing.",
-      category: "MEME"
+      category: "SHITPOST"
     };
   }
 
@@ -67,9 +69,9 @@ export const generateMarketDetails = async (tweetContent: string): Promise<{ tit
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: `Create a prediction market title and description based on this tweet. 
-      The market title should be a question (e.g., "Will X happen?"). 
+      The market title should be a question about the outcome (e.g., "Will X go viral?" or "Is this Alpha?"). 
       The description should be punchy.
-      Category must be one of: TECH, MEME, POLITICS, CRYPTO.
+      Category must be one of: SHITPOST, RAGEBAIT, ALPHA, DRAMA.
 
       Tweet: "${tweetContent}"
       `,
@@ -80,7 +82,7 @@ export const generateMarketDetails = async (tweetContent: string): Promise<{ tit
           properties: {
             title: { type: Type.STRING },
             description: { type: Type.STRING },
-            category: { type: Type.STRING, enum: ["TECH", "MEME", "POLITICS", "CRYPTO"] },
+            category: { type: Type.STRING, enum: ["SHITPOST", "RAGEBAIT", "ALPHA", "DRAMA"] },
           },
           required: ["title", "description", "category"],
         }
@@ -89,14 +91,14 @@ export const generateMarketDetails = async (tweetContent: string): Promise<{ tit
 
     const text = response.text;
     if (!text) throw new Error("No response from Gemini");
-    return JSON.parse(text) as { title: string; description: string; category: 'TECH' | 'MEME' | 'POLITICS' | 'CRYPTO' };
+    return JSON.parse(text) as { title: string; description: string; category: MarketCategory };
 
   } catch (error) {
     console.error("Gemini market generation failed:", error);
     return {
       title: "Unknown Market",
       description: "Could not generate details.",
-      category: "MEME"
+      category: "SHITPOST"
     };
   }
 }

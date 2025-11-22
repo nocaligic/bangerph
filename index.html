@@ -1,15 +1,17 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BANGR | Predict the Hype</title>
+    <title>BANGR | Spot Alpha, Print Money</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             colors: {
@@ -19,6 +21,7 @@
               'banger-pink': '#ff00ff',
               'banger-cyan': '#00ffff',
               'banger-purple': '#9d4edd',
+              'banger-green': '#00ff00',
             },
             fontFamily: {
               'display': ['"Archivo Black"', 'sans-serif'],
@@ -26,10 +29,24 @@
             },
             boxShadow: {
               'hard': '8px 8px 0px 0px #000000',
+              'hard-white': '8px 8px 0px 0px #ffffff',
               'hard-sm': '4px 4px 0px 0px #000000',
+              'hard-sm-white': '4px 4px 0px 0px #ffffff',
               'hard-hover': '2px 2px 0px 0px #000000',
-              'arcade': '6px 6px 0px 0px rgba(0,0,0,1)',
-              'arcade-pressed': '0px 0px 0px 0px rgba(0,0,0,1)',
+            },
+            animation: {
+              'scan': 'scan 2s linear infinite',
+              'slide': 'slide 1s linear infinite',
+            },
+            keyframes: {
+              scan: {
+                '0%': { transform: 'translateY(-100%)' },
+                '100%': { transform: 'translateY(100%)' },
+              },
+              slide: {
+                '0%': { backgroundPosition: '0 0' },
+                '100%': { backgroundPosition: '20px 0' },
+              }
             }
           }
         }
@@ -38,9 +55,22 @@
     <style>
       body {
         background-color: #f0f0f0;
-        background-image: radial-gradient(#000 1px, transparent 1px);
-        background-size: 20px 20px;
+        overflow-x: hidden;
       }
+      
+      /* GLOBAL NOISE TEXTURE */
+      .bg-noise {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 9999;
+        opacity: 0.03;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+      }
+
       /* Custom Scrollbar */
       ::-webkit-scrollbar {
         width: 12px;
@@ -69,20 +99,110 @@
         100% { transform: translateX(-50%); }
       }
 
+      /* TICKET NOTCHES */
+      .ticket-hole-left {
+        position: absolute;
+        left: -16px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 24px;
+        height: 24px;
+        background-color: #f0f0f0;
+        border-radius: 50%;
+        box-shadow: inset -4px 0 0 0 #000;
+        z-index: 20;
+      }
+      /* Dark mode ticket hole override via CSS variable or class logic handled in component */
+      .dark .ticket-hole-left, .dark .ticket-hole-right {
+         background-color: #18181b; /* zinc-900 */
+         box-shadow: inset -4px 0 0 0 #fff;
+      }
+      .dark .ticket-hole-right {
+         box-shadow: inset 4px 0 0 0 #fff;
+      }
+
+       .ticket-hole-right {
+        position: absolute;
+        right: -16px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 24px;
+        height: 24px;
+        background-color: #f0f0f0;
+        border-radius: 50%;
+        box-shadow: inset 4px 0 0 0 #000;
+        z-index: 20;
+      }
+
+      /* JAGGED BOTTOM GENERATOR */
+      .jagged-bottom {
+        position: relative;
+      }
+      .jagged-bottom::after {
+        content: "";
+        position: absolute;
+        bottom: -12px;
+        left: -4px;
+        right: -4px;
+        height: 12px;
+        background-size: 24px 12px;
+        background-repeat: repeat-x;
+      }
+
+      .jagged-white::after {
+          /* White fill, Black stroke - Matches Card Body */
+          background-image: url("data:image/svg+xml,%3Csvg width='24' height='12' viewBox='0 0 24 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 -4 L12 12 L24 -4' fill='%23ffffff' stroke='%23000000' stroke-width='4' /%3E%3C/svg%3E");
+          z-index: 10;
+      }
+      
+      /* DARK MODE JAGGED VARIANTS */
+      .dark .jagged-white::after {
+         /* Dark Grey fill, White stroke */
+         background-image: url("data:image/svg+xml,%3Csvg width='24' height='12' viewBox='0 0 24 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 -4 L12 12 L24 -4' fill='%2327272a' stroke='%23ffffff' stroke-width='4' /%3E%3C/svg%3E");
+      }
+
+      .jagged-black::after {
+          /* Black fill, Black stroke - Matches Shadow */
+          background-image: url("data:image/svg+xml,%3Csvg width='24' height='12' viewBox='0 0 24 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 -4 L12 12 L24 -4' fill='%23000000' stroke='%23000000' stroke-width='4' /%3E%3C/svg%3E");
+      }
+      .dark .jagged-black::after {
+         /* White fill (shadow in dark mode is white), White stroke */
+          background-image: url("data:image/svg+xml,%3Csvg width='24' height='12' viewBox='0 0 24 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 -4 L12 12 L24 -4' fill='%23ffffff' stroke='%23ffffff' stroke-width='4' /%3E%3C/svg%3E");
+      }
+      
+      /* Specific colored jagged bottoms for active states */
+      .jagged-blue::after { background-image: url("data:image/svg+xml,%3Csvg width='24' height='12' viewBox='0 0 24 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 -4 L12 12 L24 -4' fill='%233b82f6' stroke='%23000000' stroke-width='4' /%3E%3C/svg%3E"); }
+      .dark .jagged-blue::after { background-image: url("data:image/svg+xml,%3Csvg width='24' height='12' viewBox='0 0 24 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 -4 L12 12 L24 -4' fill='%233b82f6' stroke='%23ffffff' stroke-width='4' /%3E%3C/svg%3E"); }
+
+      .jagged-green::after { background-image: url("data:image/svg+xml,%3Csvg width='24' height='12' viewBox='0 0 24 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 -4 L12 12 L24 -4' fill='%2322c55e' stroke='%23000000' stroke-width='4' /%3E%3C/svg%3E"); }
+      .dark .jagged-green::after { background-image: url("data:image/svg+xml,%3Csvg width='24' height='12' viewBox='0 0 24 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 -4 L12 12 L24 -4' fill='%2322c55e' stroke='%23ffffff' stroke-width='4' /%3E%3C/svg%3E"); }
+
+      .jagged-red::after { background-image: url("data:image/svg+xml,%3Csvg width='24' height='12' viewBox='0 0 24 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 -4 L12 12 L24 -4' fill='%23ef4444' stroke='%23000000' stroke-width='4' /%3E%3C/svg%3E"); }
+      .dark .jagged-red::after { background-image: url("data:image/svg+xml,%3Csvg width='24' height='12' viewBox='0 0 24 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 -4 L12 12 L24 -4' fill='%23ef4444' stroke='%23ffffff' stroke-width='4' /%3E%3C/svg%3E"); }
+
+      .jagged-orange::after { background-image: url("data:image/svg+xml,%3Csvg width='24' height='12' viewBox='0 0 24 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 -4 L12 12 L24 -4' fill='%23f97316' stroke='%23000000' stroke-width='4' /%3E%3C/svg%3E"); }
+      .dark .jagged-orange::after { background-image: url("data:image/svg+xml,%3Csvg width='24' height='12' viewBox='0 0 24 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 -4 L12 12 L24 -4' fill='%23f97316' stroke='%23ffffff' stroke-width='4' /%3E%3C/svg%3E"); }
+
+      /* HAZARD STRIPE ANIMATION FOR FUSE */
+      .hazard-stripes {
+        background-image: repeating-linear-gradient(
+          -45deg,
+          transparent,
+          transparent 10px,
+          rgba(0, 0, 0, 0.2) 10px,
+          rgba(0, 0, 0, 0.2) 20px
+        );
+        background-size: 28px 28px;
+        animation: slide 1s linear infinite;
+      }
+
       /* Patterns */
       .pattern-dots {
         background-image: radial-gradient(#000 1px, transparent 1px);
         background-size: 4px 4px;
       }
-      .pattern-lines {
-        background-image: repeating-linear-gradient(45deg, #000 0, #000 1px, transparent 0, transparent 50%);
-        background-size: 10px 10px;
-      }
-      .pattern-grid {
-        background-size: 20px 20px;
-        background-image:
-          linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
-          linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px);
+      .dark .pattern-dots {
+        background-image: radial-gradient(#fff 1px, transparent 1px);
       }
     </style>
   <script type="importmap">
@@ -99,5 +219,6 @@
 </head>
   <body>
     <div id="root"></div>
+    <div class="bg-noise"></div>
   </body>
 </html>

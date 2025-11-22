@@ -1,167 +1,153 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Market, MetricType, MetricData } from '../types';
 import { BrutalistButton } from './BrutalistButton';
-import { ArrowRight, DollarSign, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ArrowRight, DollarSign, TrendingUp, Ticket, AlertTriangle, Coins, ArrowLeftRight, Wallet } from 'lucide-react';
 
 interface TradePanelProps {
   market: Market;
   metricType: MetricType;
   metricData: MetricData;
+  userTickets: number;
+  themeColor?: string; // e.g. 'bg-blue-500'
 }
 
-export const TradePanel: React.FC<TradePanelProps> = ({ market, metricType, metricData }) => {
-  const [position, setPosition] = useState<'YES' | 'NO'>('YES');
-  const [amount, setAmount] = useState<string>('100');
+export const TradePanel: React.FC<TradePanelProps> = ({ market, metricType, metricData, userTickets, themeColor = 'bg-black' }) => {
+  const [mode, setMode] = useState<'BUY' | 'SELL'>('BUY');
+  const [amount, setAmount] = useState<string>(mode === 'BUY' ? '10' : userTickets.toString());
   const [isSuccess, setIsSuccess] = useState(false);
   
-  const price = position === 'YES' ? metricData.yesPrice : metricData.noPrice;
-  const shares = Math.floor(parseInt(amount || '0') / (price / 100));
-  const potentialReturn = Math.floor(shares * 100); 
-  const profit = potentialReturn - parseInt(amount || '0');
-  const roi = parseInt(amount) > 0 ? Math.floor((profit / parseInt(amount)) * 100) : 0;
+  const ticketPriceUsd = metricData.ticketPrice / 100;
+  
+  useEffect(() => {
+    if (mode === 'SELL') setAmount(userTickets > 0 ? userTickets.toString() : '0');
+    else setAmount('10');
+  }, [mode, userTickets]);
 
   const handleTrade = () => {
     setIsSuccess(true);
     setTimeout(() => setIsSuccess(false), 2000);
   };
 
-  const metricColor = 
-    metricType === 'VIEWS' ? 'bg-blue-500' :
-    metricType === 'RETWEETS' ? 'bg-green-500' :
-    metricType === 'LIKES' ? 'bg-red-500' :
-    'bg-orange-500';
+  // Calculations
+  const val = parseFloat(amount || '0');
+  let estimatedTickets = 0;
+  let estimatedCost = 0;
+  let estimatedPayout = 0;
+
+  if (mode === 'BUY') {
+    estimatedCost = val;
+    estimatedTickets = estimatedCost > 0 ? Math.floor(estimatedCost / ticketPriceUsd) : 0;
+  } else {
+    estimatedTickets = val;
+    const sellPrice = ticketPriceUsd * 0.98; 
+    estimatedPayout = estimatedTickets * sellPrice;
+  }
 
   return (
-    <div className="bg-white border-4 border-black shadow-hard flex flex-col relative overflow-hidden">
-      {/* Success Overlay */}
-      {isSuccess && (
-        <div className="absolute inset-0 z-50 bg-banger-yellow flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300 pattern-lines">
-          <div className="bg-white border-4 border-black p-8 shadow-hard text-center">
-            <div className="font-display text-4xl mb-2 text-black">ORDER FILLED</div>
-            <div className="font-mono text-xl">TO THE MOON 🚀</div>
-          </div>
-        </div>
-      )}
+    <div className={`bg-white dark:bg-zinc-900 border-4 border-black dark:border-white shadow-hard dark:shadow-hard-white flex flex-col relative h-full overflow-visible`}>
+      
+      {/* TICKET HEADER TAB - The "Stub" */}
+      <div className={`${themeColor} p-3 border-b-4 border-black dark:border-white text-white flex justify-between items-center`}>
+          <div className="font-display text-lg uppercase">TRADING: {metricType}</div>
+          <Ticket className="animate-pulse" />
+      </div>
 
-      <div className="bg-banger-black text-white p-4 border-b-4 border-black flex justify-between items-center relative overflow-hidden">
-        <div className="pattern-dots absolute inset-0 opacity-20"></div>
-        <div className="relative z-10">
-            <h3 className="font-display text-xl uppercase">Trade Console</h3>
-            <div className={`text-[10px] font-mono font-bold ${metricColor} px-2 py-0.5 text-white inline-block mt-1 border border-white shadow-[2px_2px_0px_0px_#fff]`}>
-                TRADING: {metricType}
+      {/* NOTCHES at the top header seam */}
+      <div className="ticket-hole-left" style={{top: '54px'}}></div>
+      <div className="ticket-hole-right" style={{top: '54px'}}></div>
+
+      {/* MODE TABS */}
+      <div className="flex border-b-4 border-black dark:border-white">
+        <button 
+            onClick={() => setMode('BUY')}
+            className={`flex-1 py-3 font-mono font-bold uppercase transition-colors ${mode === 'BUY' ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-gray-100 dark:bg-zinc-800 text-gray-400 hover:bg-gray-200'}`}
+        >
+            BUY
+        </button>
+        <button 
+            onClick={() => setMode('SELL')}
+            className={`flex-1 py-3 font-mono font-bold uppercase transition-colors ${mode === 'SELL' ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-gray-100 dark:bg-zinc-800 text-gray-400 hover:bg-gray-200'}`}
+        >
+            SELL
+        </button>
+      </div>
+
+      {/* MAIN CONTENT */}
+      <div className="p-6 flex flex-col gap-6 flex-grow">
+        
+        {/* PRICE DISPLAY */}
+        <div className="bg-gray-50 dark:bg-zinc-800 border-2 border-black dark:border-white p-3 flex justify-between items-center">
+            <div>
+                <div className="text-[10px] font-mono text-gray-500 dark:text-gray-400 uppercase">PRICE / TICKET</div>
+                <div className="font-display text-2xl dark:text-white">${ticketPriceUsd.toFixed(2)}</div>
+            </div>
+             <div className="text-right">
+                <div className="text-[10px] font-mono text-gray-500 dark:text-gray-400 uppercase">YOUR {metricType} BAG</div>
+                <div className="font-mono font-bold text-xl dark:text-white">{userTickets} TIX</div>
             </div>
         </div>
-        <div className="flex items-center gap-2 text-xs font-mono text-banger-yellow relative z-10">
-          <div className="w-2 h-2 bg-banger-yellow rounded-full animate-pulse shadow-[0_0_10px_#ccff00]" />
-          LIVE
-        </div>
-      </div>
 
-      <div className="p-6 flex flex-col gap-6">
-        
-        {/* Arcade Style Position Toggles */}
-        <div className="grid grid-cols-2 gap-4">
-          <button
-            onClick={() => setPosition('YES')}
+        {/* INPUT */}
+        <div>
+           <label className="font-mono font-bold text-xs uppercase mb-2 block dark:text-white">
+              {mode === 'BUY' ? 'AMOUNT TO SPEND ($)' : 'TICKETS TO DUMP'}
+           </label>
+           <div className="relative">
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className={`
+                    w-full border-4 border-black dark:border-white p-3 font-mono text-2xl focus:outline-none
+                    focus:shadow-[4px_4px_0px_0px_#000] dark:focus:shadow-[4px_4px_0px_0px_#fff] transition-all
+                    ${mode === 'BUY' ? 'bg-green-50 dark:bg-green-900/20 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 dark:text-red-400'}
+                `}
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 font-mono font-bold text-gray-400">
+                 {mode === 'BUY' ? 'USD' : 'TIX'}
+              </div>
+           </div>
+        </div>
+
+        {/* RECEIPT PREVIEW */}
+        <div className="border-t-2 border-dashed border-gray-300 dark:border-zinc-700 pt-4 space-y-2">
+            <div className="flex justify-between font-mono text-xs">
+                <span className="text-gray-500 dark:text-gray-400">EST. QUANTITY</span>
+                <span className="font-bold dark:text-white">{mode === 'BUY' ? estimatedTickets : estimatedTickets} TICKETS</span>
+            </div>
+            <div className="flex justify-between font-mono text-xs">
+                 <span className="text-gray-500 dark:text-gray-400">{mode === 'BUY' ? 'MAX PAYOUT' : 'CASH VALUE'}</span>
+                 <span className={`font-bold text-lg ${mode === 'BUY' ? 'text-green-600' : 'text-black dark:text-white'}`}>
+                    ${(mode === 'BUY' ? estimatedTickets * 1.00 : estimatedPayout).toFixed(2)}
+                 </span>
+            </div>
+        </div>
+
+        {/* EXECUTE BUTTON */}
+        <BrutalistButton 
             className={`
-              relative h-28 transition-all duration-100 group
-              border-4 border-black font-display uppercase text-2xl flex flex-col items-center justify-center gap-2
-              ${position === 'YES' 
-                ? 'bg-[#00ff00] text-black shadow-arcade-pressed translate-y-[6px] translate-x-[6px]' 
-                : 'bg-gray-100 text-gray-400 shadow-arcade hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-hard-sm'}
+                w-full py-4 text-xl flex justify-center items-center gap-2 mt-auto
+                ${mode === 'BUY' ? 'bg-banger-green hover:bg-green-400' : 'bg-banger-pink hover:bg-pink-400 text-white'}
             `}
-          >
-            <ThumbsUp size={24} strokeWidth={3} className={position === 'YES' ? 'animate-bounce' : ''} />
-            <div>YES</div>
-            <div className="text-sm font-mono bg-black text-white px-2 py-1 rounded-sm">{metricData.yesPrice}¢</div>
-            {/* Inner shine */}
-            <div className="absolute top-2 left-2 w-full h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none"></div>
-          </button>
-
-          <button
-            onClick={() => setPosition('NO')}
-            className={`
-              relative h-28 transition-all duration-100 group
-              border-4 border-black font-display uppercase text-2xl flex flex-col items-center justify-center gap-2
-              ${position === 'NO' 
-                ? 'bg-[#ff0055] text-white shadow-arcade-pressed translate-y-[6px] translate-x-[6px]' 
-                : 'bg-gray-100 text-gray-400 shadow-arcade hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-hard-sm'}
-            `}
-          >
-            <ThumbsDown size={24} strokeWidth={3} className={position === 'NO' ? 'animate-bounce' : ''} />
-            <div>NO</div>
-            <div className="text-sm font-mono bg-black text-white px-2 py-1 rounded-sm">{metricData.noPrice}¢</div>
-            <div className="absolute top-2 left-2 w-full h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none"></div>
-          </button>
-        </div>
-
-        {/* Amount Input - Fixed Layout & Styling */}
-        <div className="bg-banger-black p-4 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
-          <div className="flex justify-between items-end mb-2">
-             <label className="font-mono font-bold text-xs text-gray-400 uppercase">Wager Amount</label>
-             <span className="font-mono text-[10px] text-banger-yellow">BAL: $4,206.90</span>
-          </div>
-          
-          <div className="relative">
-            <DollarSign className="absolute top-1/2 -translate-y-1/2 left-3 text-banger-yellow pointer-events-none" />
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full bg-gray-900 border-2 border-gray-700 text-white font-mono text-xl p-2 pl-10 focus:outline-none focus:border-banger-yellow focus:bg-black transition-all placeholder-gray-700"
-              placeholder="0"
-            />
-          </div>
-
-          {/* Preset Buttons */}
-          <div className="grid grid-cols-4 gap-2 mt-3">
-            {[10, 50, 100, 500].map((val) => (
-              <button
-                key={val}
-                onClick={() => setAmount(val.toString())}
-                className="bg-gray-800 hover:bg-gray-700 text-white text-xs font-mono font-bold py-1 border-b-2 border-black active:border-t-2 active:border-b-0"
-              >
-                ${val}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Receipt / Summary */}
-        <div className="bg-white border-2 border-black p-4 space-y-2 relative font-mono text-sm">
-          {/* Jagged edge top */}
-          <div className="absolute -top-2 left-0 w-full h-2 bg-[length:10px_10px] bg-[linear-gradient(45deg,transparent_33%,#000_33%,#000_66%,transparent_66%)] bg-repeat-x"></div>
-          
-          <div className="flex justify-between">
-            <span className="text-gray-600">Shares</span>
-            <span className="font-bold">{shares}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Payout</span>
-            <span className="font-bold text-green-600">${potentialReturn}</span>
-          </div>
-          <div className="border-t-2 border-dashed border-gray-300 pt-2 mt-2 flex justify-between items-center">
-            <span className="text-gray-600">ROI</span>
-            <span className="font-bold bg-black text-banger-yellow px-2">
-              {roi}%
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-2">
-          <BrutalistButton 
-            className="w-full py-4 text-xl flex justify-center items-center gap-2 shadow-arcade active:shadow-arcade-pressed active:translate-y-[6px] active:translate-x-[6px] transition-all"
             onClick={handleTrade}
-            variant={position === 'YES' ? 'primary' : 'danger'}
-          >
-            BUY {position} <ArrowRight strokeWidth={3} />
-          </BrutalistButton>
-          <p className="text-center font-mono text-[10px] text-gray-400 mt-2">
-            Fee: 1% • Slippage: 0.5%
-          </p>
-        </div>
+            disabled={parseFloat(amount) <= 0}
+        >
+            {mode === 'BUY' ? 'CONFIRM ORDER' : 'SELL NOW'} <ArrowRight strokeWidth={3} />
+        </BrutalistButton>
+
       </div>
+
+      {/* SUCCESS OVERLAY */}
+      {isSuccess && (
+        <div className="absolute inset-0 bg-black/90 z-50 flex flex-col items-center justify-center text-white animate-in fade-in p-6 text-center">
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 border-4 border-white ${mode === 'BUY' ? 'bg-green-500' : 'bg-banger-pink'}`}>
+             <Ticket size={40} />
+          </div>
+          <h3 className="font-display text-2xl uppercase mb-2">ORDER FILLED</h3>
+          <p className="font-mono text-sm text-gray-400">You are now exposed to {metricType}</p>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+
+import React from 'react';
 import { Market, MetricType } from '../types';
 import { BrutalistButton } from './BrutalistButton';
 import { TweetDisplay } from './TweetDisplay';
-import { TrendingUp, Clock, Zap, Eye, Repeat, Heart, MessageCircle, ThumbsUp, ThumbsDown, Flame } from 'lucide-react';
+import { Clock, Zap, Eye, Repeat, Heart, MessageCircle, Flame, Lock, TrendingUp, Ticket, Sparkles } from 'lucide-react';
 
 interface MarketCardProps {
   market: Market;
@@ -11,135 +12,172 @@ interface MarketCardProps {
 
 const getMetricConfig = (type: MetricType) => {
   switch (type) {
-    case 'VIEWS': return { color: 'bg-blue-500', text: 'text-blue-600', label: 'VIEWS', icon: <Eye size={16} /> };
-    case 'RETWEETS': return { color: 'bg-green-500', text: 'text-green-600', label: 'RETWEETS', icon: <Repeat size={16} /> };
-    case 'LIKES': return { color: 'bg-red-500', text: 'text-red-600', label: 'LIKES', icon: <Heart size={16} /> };
-    case 'COMMENTS': return { color: 'bg-orange-500', text: 'text-orange-600', label: 'COMMENTS', icon: <MessageCircle size={16} /> };
+    case 'VIEWS': return { 
+      color: 'bg-blue-500', 
+      borderColor: 'border-blue-500',
+      text: 'text-blue-600 dark:text-blue-400', 
+      label: 'VIEWS', 
+      icon: <Eye size={14} /> 
+    };
+    case 'RETWEETS': return { 
+      color: 'bg-green-500', 
+      borderColor: 'border-green-500',
+      text: 'text-green-600 dark:text-green-400', 
+      label: 'RETWEETS', 
+      icon: <Repeat size={14} /> 
+    };
+    case 'LIKES': return { 
+      color: 'bg-red-500', 
+      borderColor: 'border-red-500',
+      text: 'text-red-600 dark:text-red-400', 
+      label: 'LIKES', 
+      icon: <Heart size={14} /> 
+    };
+    case 'COMMENTS': return { 
+      color: 'bg-orange-500', 
+      borderColor: 'border-orange-500',
+      text: 'text-orange-600 dark:text-orange-400', 
+      label: 'COMMENTS', 
+      icon: <MessageCircle size={14} /> 
+    };
   }
 };
 
 export const MarketCard: React.FC<MarketCardProps> = ({ market, onBet }) => {
   const activeMetric = market.featuredMetric;
-  const metricData = market.metrics[activeMetric];
+  const metricData = market.metrics[activeMetric] || market.metrics['VIEWS'];
   const config = getMetricConfig(activeMetric);
 
-  // Randomize hover border color on mount
-  const hoverBorderColor = useMemo(() => {
-    const colors = [
-      'hover:border-banger-pink',
-      'hover:border-banger-cyan',
-      'hover:border-banger-yellow',
-      'hover:border-banger-purple',
-      'hover:border-green-500',
-      'hover:border-blue-500', 
-      'hover:border-red-500'
-    ];
-    return colors[Math.floor(Math.random() * colors.length)];
-  }, []);
-
-  // Format numbers (e.g. 1,000,000 -> 1M)
   const formatTarget = (num: number) => {
     if (num >= 1000000) return (num / 1000000).toFixed(1).replace('.0', '') + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1).replace('.0', '') + 'k';
     return num.toString();
   };
 
+  const formatMoney = (num: number) => {
+    return num.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  };
+
   return (
     <div 
       onClick={() => onBet(market)}
-      className={`
-        group cursor-pointer relative bg-white border-4 border-black shadow-hard 
-        transition-colors duration-150 flex flex-col w-full
-        ${hoverBorderColor}
-      `}
+      className="group cursor-pointer relative w-full mb-8 break-inside-avoid"
     >
-      {/* Content Container */}
-      <div className="p-4 flex flex-col gap-3">
+      {/* SHADOW LAYER (Stationary) - Black in light mode, White in dark mode */}
+      <div className="absolute top-2 left-2 w-full h-full bg-black dark:bg-white border-4 border-black dark:border-white border-b-0 jagged-bottom jagged-black z-0"></div>
+
+      {/* CARD CONTENT LAYER (Moves on Hover) */}
+      <div className="relative bg-white dark:bg-zinc-900 border-4 border-black dark:border-white border-b-0 transition-transform duration-150 group-hover:-translate-y-2 group-hover:-translate-x-1 jagged-bottom jagged-white z-10 flex flex-col h-full">
         
-        {/* Header Row: Category | HOT | Date */}
-        <div className="flex justify-between items-start mb-1">
-           <div className="flex items-center gap-2 flex-wrap">
-             <span className="bg-banger-yellow text-black font-mono text-[10px] px-2 py-1 border-2 border-black uppercase font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-               {market.category}
-             </span>
-             
-             {/* INLINE HOT BADGE - NO CLIPPING */}
-             {market.isHot && (
-               <div className="bg-banger-pink text-white font-mono text-[10px] px-2 py-1 border-2 border-black uppercase font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1 transform -rotate-3 animate-pulse">
-                  <Flame size={12} className="fill-current" /> HOT
-               </div>
-             )}
+        {/* METRIC HEADER STRIP */}
+        <div className={`${config.color} h-9 border-b-4 border-black dark:border-white flex justify-between items-center px-3 relative overflow-hidden`}>
+           {/* Strip Pattern */}
+           <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNCIgaGVpZ2h0PSI0IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxjaXJjbGUgY3g9IjIiIGN5PSIyIiByPSIxIiBmaWxsPSIjMDAwIi8+PC9zdmc+')]"></div>
+           
+           <div className="flex items-center gap-2 font-mono font-bold text-xs text-white uppercase drop-shadow-md z-10">
+              {config.icon}
+              <span className="tracking-wide">Target: {formatTarget(metricData.target)}</span>
            </div>
-
-           <span className="flex items-center gap-1 text-[10px] font-mono font-bold text-gray-500 bg-gray-100 px-2 py-1 border border-black whitespace-nowrap ml-2">
-             <Clock size={12} /> {market.endDate}
-           </span>
-        </div>
-        
-        {/* Tweet Embed Preview */}
-        <div className="border-2 border-black bg-gray-50 p-2 hover:bg-white transition-colors relative overflow-hidden group-hover:border-current">
-          <TweetDisplay tweet={market.tweet} compact={true} />
+           {market.isHot && (
+              <div className="flex items-center gap-1 text-white font-mono text-[10px] font-bold animate-pulse z-10">
+                  <Flame size={12} className="fill-current" /> HOT
+              </div>
+           )}
         </div>
 
-        {/* ARCADE STYLE "WILL THIS HIT" BANNER */}
-        <div className={`relative border-4 border-black ${config.color} p-4 mt-2 overflow-hidden group-hover:brightness-110 transition-all`}>
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-20 pattern-dots pointer-events-none"></div>
+        {/* TICKET BODY */}
+        <div className="p-4 flex flex-col gap-3 relative flex-grow">
           
-          <div className="relative z-10 flex flex-col items-center text-center">
-            <div className="absolute -top-3 -left-3 bg-black text-white font-mono text-[10px] font-bold px-2 py-1 uppercase transform -rotate-3 border-2 border-white shadow-sm">
-                Will it hit?
-            </div>
-            
-            <div className="font-display text-4xl md:text-5xl leading-none uppercase text-white drop-shadow-[4px_4px_0px_rgba(0,0,0,1)] stroke-black mt-1">
-              {formatTarget(metricData.target)}
-            </div>
-            <div className="font-display text-lg text-black bg-white px-2 border-2 border-black transform rotate-1 -mt-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-               {config.label}
-            </div>
+          {/* Tweet Preview - REFINED CONTAINER */}
+          {/* Removed extra gray background padding to let full width media breathe */}
+          <div className="border-2 border-black dark:border-white bg-white dark:bg-zinc-950 p-3 relative hover:shadow-[2px_2px_0px_0px_#000] dark:hover:shadow-[2px_2px_0px_0px_#fff] transition-shadow">
+             {/* Simulated Vibe Check Badge */}
+             <div className="absolute -top-2 -right-2 z-20 bg-black dark:bg-white text-white dark:text-black text-[9px] font-bold px-2 py-1 border border-white dark:border-black shadow-sm flex items-center gap-1 transform rotate-2">
+                <Sparkles size={10} className="text-banger-yellow dark:text-black" /> AI CHECKED
+             </div>
+            <TweetDisplay tweet={market.tweet} compact={true} hideMetrics={true} />
           </div>
-        </div>
 
-        {/* YES/NO ARCADE BUTTONS */}
-        <div className="grid grid-cols-2 gap-3 mt-1">
-          <div className="relative bg-white border-2 border-black p-1 group/btn">
-            <div className="bg-green-100 h-full border-2 border-black p-2 flex flex-col items-center justify-center hover:bg-green-200 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] group-hover/btn:translate-x-[1px] group-hover/btn:translate-y-[1px] group-hover/btn:shadow-none">
-              <div className="flex items-center gap-1 font-mono text-[10px] font-bold text-green-800 mb-1">
-                <ThumbsUp size={12} /> YES
+          {/* Meta Info Row */}
+          <div className="flex justify-between items-center mt-1">
+             <div className="bg-black dark:bg-white text-white dark:text-black font-mono text-[10px] px-2 py-0.5 font-bold uppercase tracking-wider">
+               {market.category}
+             </div>
+             <div className="font-mono text-[10px] font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1">
+               <Clock size={12} /> {market.endDate}
+             </div>
+          </div>
+
+          {/* STATS GRID - NEW UNIVERSAL COLOR BLOCK */}
+          <div className="grid grid-cols-2 gap-0 border-2 border-black dark:border-white mt-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.15)] dark:shadow-none">
+              
+              {/* VAULT - SOLID COLOR BLOCK */}
+              <div className={`${config.color} p-3 border-r-2 border-black dark:border-white relative overflow-hidden flex flex-col justify-center min-h-[60px]`}>
+                   {/* Texture overlay for detail */}
+                   <div className="absolute inset-0 opacity-20 bg-[radial-gradient(rgba(0,0,0,0.4)_1px,transparent_1px)] [background-size:4px_4px]"></div>
+                   
+                   <div className="relative z-10">
+                       <div className="font-mono text-[9px] font-bold uppercase mb-0.5 text-black/70 flex items-center gap-1">
+                          {config.icon} PRIZE POOL
+                       </div>
+                       <div className="font-display text-xl leading-none text-white drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                          {formatMoney(metricData.vaultValue)}
+                       </div>
+                   </div>
               </div>
-              <div className="font-display text-2xl text-green-600 leading-none">{metricData.yesPrice}¢</div>
-            </div>
-          </div>
 
-          <div className="relative bg-white border-2 border-black p-1 group/btn">
-             <div className="bg-red-100 h-full border-2 border-black p-2 flex flex-col items-center justify-center hover:bg-red-200 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] group-hover/btn:translate-x-[1px] group-hover/btn:translate-y-[1px] group-hover/btn:shadow-none">
-              <div className="flex items-center gap-1 font-mono text-[10px] font-bold text-red-800 mb-1">
-                <ThumbsDown size={12} /> NO
+              {/* PRICE BLOCK */}
+              <div className="p-3 bg-white dark:bg-zinc-900 flex flex-col justify-center relative min-h-[60px]">
+                   <div className="font-mono text-[9px] text-gray-500 dark:text-gray-400 uppercase mb-0.5">
+                      Entry Price
+                   </div>
+                   <div className="font-display text-xl leading-none flex items-center gap-1 dark:text-white">
+                      ${(metricData.ticketPrice / 100).toFixed(2)}
+                      <TrendingUp size={14} className="text-green-600" />
+                   </div>
               </div>
-              <div className="font-display text-2xl text-red-600 leading-none">{metricData.noPrice}¢</div>
-            </div>
           </div>
         </div>
 
-        <div className="flex justify-between items-center text-xs font-mono font-bold mt-1 px-1">
-          <span className="flex items-center gap-1 bg-black text-white px-1">
-            <TrendingUp size={12} /> {market.volume}
-          </span>
+        {/* TICKET PERFORATION DIVIDER */}
+        <div className="relative h-6 w-full flex items-center justify-center mt-auto">
+           {/* Left Notch */}
+           <div className="ticket-hole-left"></div>
+           
+           {/* Dotted Line */}
+           <div className="w-full border-t-4 border-dashed border-gray-300 dark:border-zinc-700 mx-4"></div>
+           
+           {/* Right Notch */}
+           <div className="ticket-hole-right"></div>
         </div>
-      </div>
 
-      {/* ACTION BUTTON - Stays at bottom but flows with content */}
-      <div className="p-4 pt-0 mt-auto">
-        <BrutalistButton 
-          className="w-full flex items-center justify-center gap-2 group-hover:bg-banger-cyan group-hover:text-black transition-colors" 
-          onClick={(e) => {
-            e.stopPropagation();
-            onBet(market);
-          }}
-        >
-          <Zap size={18} className="fill-current" />
-          TRADE NOW
-        </BrutalistButton>
+        {/* TICKET FOOTER (ACTION) */}
+        <div className="p-4 pt-2 bg-white dark:bg-zinc-900 rounded-b-sm">
+           {/* Progress */}
+           <div className="mb-3">
+              <div className="flex justify-between text-[9px] font-mono font-bold uppercase mb-1">
+                  <span className={config.text}>{metricData.progress}% Filled</span>
+                  <span className="dark:text-gray-400">Cap: {formatTarget(metricData.target)}</span>
+              </div>
+              <div className="w-full h-3 border-2 border-black dark:border-white bg-gray-100 dark:bg-zinc-800 relative">
+                  <div 
+                      className={`h-full ${config.color} hazard-stripes border-r-2 border-black dark:border-white`}
+                      style={{ width: `${Math.min(metricData.progress, 100)}%` }}
+                  ></div>
+              </div>
+          </div>
+
+          <BrutalistButton 
+            className="w-full flex items-center justify-center gap-2 bg-black dark:bg-white text-white dark:text-black hover:bg-banger-yellow hover:text-black dark:hover:bg-banger-yellow transition-colors active:translate-y-1 active:shadow-none py-3" 
+            onClick={(e) => {
+              e.stopPropagation();
+              onBet(market);
+            }}
+          >
+            <Ticket size={16} className="fill-current" />
+            BUY PREDICTION
+          </BrutalistButton>
+        </div>
       </div>
     </div>
   );

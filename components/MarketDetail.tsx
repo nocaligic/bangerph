@@ -1,35 +1,101 @@
 
-import React, { useState } from 'react';
-import { Market, MetricType } from '../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Market, MetricType, Position } from '../types';
 import { BrutalistButton } from './BrutalistButton';
 import { TradePanel } from './TradePanel';
 import { TweetDisplay } from './TweetDisplay';
 import { analyzeVirality } from '../services/geminiService';
-import { BrainCircuit, Users, Activity, Copy, Twitter, Eye, Repeat, Heart, MessageCircle, Clock } from 'lucide-react';
+import { BrainCircuit, Eye, Repeat, Heart, MessageCircle, Timer, Lock, TrendingUp, Activity, User, ArrowLeft } from 'lucide-react';
 
 interface MarketDetailProps {
   market: Market;
   onBack: () => void;
+  userPositions?: Position[];
 }
 
 const METRICS: MetricType[] = ['VIEWS', 'RETWEETS', 'LIKES', 'COMMENTS'];
 
-const getMetricConfig = (type: MetricType) => {
+// Expanded config to include Tailwind classes for borders/text/bg
+const getMetricTheme = (type: MetricType) => {
   switch (type) {
-    case 'VIEWS': return { color: 'bg-blue-500', borderColor: 'border-blue-500', hover: 'hover:bg-blue-500', text: 'text-blue-600', label: 'VIEWS', icon: <Eye size={18} /> };
-    case 'RETWEETS': return { color: 'bg-green-500', borderColor: 'border-green-500', hover: 'hover:bg-green-500', text: 'text-green-600', label: 'RETWEETS', icon: <Repeat size={18} /> };
-    case 'LIKES': return { color: 'bg-red-500', borderColor: 'border-red-500', hover: 'hover:bg-red-500', text: 'text-red-600', label: 'LIKES', icon: <Heart size={18} /> };
-    case 'COMMENTS': return { color: 'bg-orange-500', borderColor: 'border-orange-500', hover: 'hover:bg-orange-500', text: 'text-orange-600', label: 'COMMENTS', icon: <MessageCircle size={18} /> };
+    case 'VIEWS': return { 
+      name: 'VIEWS',
+      mainColor: 'bg-blue-500',
+      borderColor: 'border-blue-500',
+      textColor: 'text-blue-600 dark:text-blue-400',
+      lightBg: 'bg-blue-50',
+      jaggedClass: 'jagged-blue',
+      icon: <Eye size={20} />
+    };
+    case 'RETWEETS': return { 
+      name: 'RETWEETS',
+      mainColor: 'bg-green-500',
+      borderColor: 'border-green-500',
+      textColor: 'text-green-600 dark:text-green-400',
+      lightBg: 'bg-green-50',
+      jaggedClass: 'jagged-green',
+      icon: <Repeat size={20} />
+    };
+    case 'LIKES': return { 
+      name: 'LIKES',
+      mainColor: 'bg-red-500',
+      borderColor: 'border-red-500',
+      textColor: 'text-red-600 dark:text-red-400',
+      lightBg: 'bg-red-50',
+      jaggedClass: 'jagged-red',
+      icon: <Heart size={20} />
+    };
+    case 'COMMENTS': return { 
+      name: 'COMMENTS',
+      mainColor: 'bg-orange-500',
+      borderColor: 'border-orange-500',
+      textColor: 'text-orange-600 dark:text-orange-400',
+      lightBg: 'bg-orange-50',
+      jaggedClass: 'jagged-orange',
+      icon: <MessageCircle size={20} />
+    };
   }
 };
 
-export const MarketDetail: React.FC<MarketDetailProps> = ({ market, onBack }) => {
+const MOCK_TRADES = [
+    { user: 'AuX9...tK21', type: 'BUY', amount: 500, price: 0.25, time: '2s ago' },
+    { user: 'sol_chad69', type: 'BUY', amount: 1200, price: 0.26, time: '5s ago' },
+    { user: 'paper_hands', type: 'SELL', amount: 200, price: 0.24, time: '12s ago' },
+];
+
+export const MarketDetail: React.FC<MarketDetailProps> = ({ market, onBack, userPositions = [] }) => {
   const [selectedMetric, setSelectedMetric] = useState<MetricType>(market.featuredMetric);
   const [aiAnalysis, setAiAnalysis] = useState<{loading: boolean, result: any | null}>({ loading: false, result: null });
-  const [copied, setCopied] = useState(false);
+  const [trades, setTrades] = useState(MOCK_TRADES);
+  
+  const theme = getMetricTheme(selectedMetric);
+  const activeMetricData = market.metrics[selectedMetric] || market.metrics['VIEWS'];
 
-  const activeMetricData = market.metrics[selectedMetric];
-  const activeConfig = getMetricConfig(selectedMetric);
+  const userTickets = useMemo(() => {
+    const pos = userPositions.find(p => p.marketId === market.id && p.metricType === selectedMetric);
+    return pos ? pos.shares : 0;
+  }, [userPositions, market.id, selectedMetric]);
+
+  // Live Feed Simulation
+  useEffect(() => {
+    const interval = setInterval(() => {
+        if (Math.random() > 0.6) {
+            const types: ('BUY' | 'SELL')[] = ['BUY', 'BUY', 'SELL'];
+            const chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+            const randomAddr = Array(4).fill(0).map(() => chars[Math.floor(Math.random() * chars.length)]).join('');
+            
+            const newTrade = {
+                user: `${randomAddr}...${randomAddr}`, 
+                type: types[Math.floor(Math.random() * types.length)],
+                amount: Math.floor(Math.random() * 1000) + 10,
+                price: activeMetricData.ticketPrice / 100,
+                time: 'Just now'
+            };
+            setTrades(prev => [newTrade, ...prev.slice(0, 6)]);
+        }
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [activeMetricData.ticketPrice]);
 
   const runAiAnalysis = async () => {
     setAiAnalysis({ loading: true, result: null });
@@ -37,27 +103,6 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({ market, onBack }) =>
     setAiAnalysis({ loading: false, result: data });
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  // Simulated Chart Data (SVG Polyline)
-  const generateChartPoints = () => {
-    let points = "0,100 ";
-    let y = 100;
-    // Add randomness based on metric to make them look different
-    const seed = selectedMetric.length; 
-    for (let i = 1; i <= 100; i += 5) {
-      y = Math.max(10, Math.min(140, y + (Math.random() * 40 - 20) + (seed % 2 === 0 ? 5 : -5)));
-      points += `${i * 8},${y} `;
-    }
-    return points;
-  };
-
-  const chartPoints = React.useMemo(() => generateChartPoints(), [market.id, selectedMetric]);
-  
   const formatTarget = (num: number) => {
     if (num >= 1000000) return (num / 1000000).toFixed(1).replace('.0', '') + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1).replace('.0', '') + 'k';
@@ -66,236 +111,177 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({ market, onBack }) =>
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 animate-in slide-in-from-bottom-4 duration-500">
-      {/* Breadcrumb Nav */}
-      <nav className="flex items-center gap-2 mb-8 font-mono text-sm text-gray-500">
-        <button onClick={onBack} className="hover:text-black hover:underline underline-offset-4 decoration-2 decoration-banger-pink">HOME</button>
-        <span>/</span>
-        <span className="text-black font-bold truncate max-w-[200px]">{market.category}</span>
-        <span>/</span>
-        <span className="truncate max-w-[200px]">{market.id}</span>
-      </nav>
+      
+      {/* TOP NAV */}
+      <div className="mb-6 flex items-center gap-4">
+        <BrutalistButton size="sm" variant="outline" onClick={onBack} className="flex items-center gap-2 px-3">
+             <ArrowLeft size={16} /> BACK
+        </BrutalistButton>
+        <div className="font-mono text-xs bg-black dark:bg-white text-white dark:text-black px-3 py-2 border-2 border-black dark:border-white">
+             ID: {market.id}
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* LEFT COLUMN: Info & Chart (8 cols) */}
-        <div className="lg:col-span-8 space-y-8">
+        {/* LEFT: CONTENT & TABS */}
+        <div className="lg:col-span-7 space-y-8">
           
-          {/* Header Block */}
-          <div className="bg-white border-4 border-black shadow-hard p-6 md:p-8 relative">
-            <div className="absolute -top-4 -right-4 bg-banger-yellow border-4 border-black px-4 py-2 font-mono font-bold text-sm shadow-hard-sm transform rotate-2 z-10">
-              ENDS {market.endDate}
+          {/* Main Market Info */}
+          <div className="bg-white dark:bg-zinc-900 border-4 border-black dark:border-white shadow-hard dark:shadow-hard-white p-6">
+            <div className="flex justify-between items-start border-b-4 border-black dark:border-white pb-4 mb-4">
+                <h1 className="font-display text-3xl uppercase leading-none dark:text-white">{market.title}</h1>
+                <div className="flex flex-col items-end">
+                     <div className="flex items-center gap-2 bg-banger-yellow px-2 py-1 border-2 border-black dark:border-white font-mono font-bold text-xs text-black">
+                        <Timer size={14} /> {market.endDate}
+                     </div>
+                </div>
             </div>
-            
-            <h1 className="font-display text-3xl md:text-4xl lg:text-5xl uppercase leading-[0.9] mb-6 text-black border-b-4 border-black pb-4">
-              {market.title}
-            </h1>
-
-            {/* The Tweet */}
-            <div className="border-4 border-black p-4 bg-gray-50">
-              <div className="font-mono text-xs font-bold text-gray-400 mb-2 uppercase">Market Source</div>
-              <TweetDisplay tweet={market.tweet} hideMetrics={true} />
-            </div>
-
-            <div className="flex gap-4 pt-4 mt-4">
-              <div className="flex items-center gap-2 font-mono text-sm font-bold">
-                <Users size={16} /> <span className="text-gray-600">Vol:</span> {market.volume}
-              </div>
-            </div>
+            <TweetDisplay tweet={market.tweet} hideMetrics={true} />
           </div>
 
           {/* METRIC SELECTOR TABS */}
-          <div className="flex flex-wrap gap-2 md:gap-0">
-            {METRICS.map((metric) => {
-               const config = getMetricConfig(metric);
-               const isSelected = selectedMetric === metric;
-               return (
-                 <button
-                   key={metric}
-                   onClick={() => setSelectedMetric(metric)}
-                   className={`
-                     flex-1 py-3 px-4 font-mono font-bold text-sm uppercase border-4 border-black transition-all flex items-center justify-center gap-2
-                     ${isSelected 
-                        ? `${config.color} text-white -translate-y-2 shadow-hard-sm z-10` 
-                        : `bg-white text-gray-500 hover:bg-gray-100`}
-                   `}
-                 >
-                   {config.icon} {metric}
-                 </button>
-               );
-            })}
+          <div className="space-y-2">
+            <div className="font-display text-xl uppercase flex items-center gap-2 dark:text-white">
+                Choose Your Fighter
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {METRICS.map((metric) => {
+                    const mTheme = getMetricTheme(metric);
+                    const data = market.metrics[metric];
+                    const isSelected = selectedMetric === metric;
+                    
+                    return (
+                        <button
+                            key={metric}
+                            onClick={() => setSelectedMetric(metric)}
+                            className={`
+                                relative border-4 transition-all duration-200 text-left p-3 h-28 flex flex-col justify-between group
+                                ${isSelected 
+                                    ? `border-black dark:border-white bg-white dark:bg-zinc-900 shadow-hard dark:shadow-hard-white -translate-y-2 z-10` 
+                                    : `border-transparent bg-gray-200 dark:bg-zinc-800 hover:bg-gray-300 dark:hover:bg-zinc-700 text-gray-500 dark:text-gray-400 opacity-80 hover:opacity-100`
+                                }
+                            `}
+                        >
+                            {/* Top Bar if Selected */}
+                            {isSelected && <div className={`absolute top-0 left-0 w-full h-2 ${mTheme.mainColor}`}></div>}
+                            
+                            <div className="flex items-center justify-between">
+                                <div className={`${isSelected ? mTheme.textColor : ''}`}>
+                                    {mTheme.icon}
+                                </div>
+                                {isSelected && <div className="w-2 h-2 rounded-full bg-black dark:bg-white animate-pulse"></div>}
+                            </div>
+
+                            <div>
+                                <div className="font-mono text-[10px] font-bold uppercase mb-1 dark:text-gray-300">{mTheme.name}</div>
+                                <div className={`font-display text-xl leading-none ${isSelected ? 'text-black dark:text-white' : 'text-gray-400'}`}>
+                                    {formatTarget(data.target)}
+                                </div>
+                            </div>
+                        </button>
+                    );
+                })}
+            </div>
           </div>
 
-          {/* CHART SECTION */}
-          <div className="bg-white border-4 border-black shadow-hard -mt-4 relative z-0">
-            <div className="p-4 border-b-4 border-black flex justify-between items-center bg-gray-50">
-              <div className="flex flex-col">
-                <span className="font-mono text-xs text-gray-500 uppercase">Predicting</span>
-                <h3 className={`font-display text-xl uppercase ${activeConfig.text}`}>
-                  Will it hit {formatTarget(activeMetricData.target)} {activeConfig.label}?
+          {/* BONDING CURVE (Themed) */}
+          <div className={`border-4 border-black dark:border-white shadow-hard dark:shadow-hard-white p-6 ${theme.lightBg} dark:bg-zinc-900`}>
+             <div className="flex justify-between items-center mb-4">
+                <h3 className="font-display text-xl uppercase flex items-center gap-2 dark:text-white">
+                    <TrendingUp size={20} /> Bonding Curve
                 </h3>
-              </div>
-              <div className="font-mono text-xs px-2 py-1 bg-green-100 text-green-800 border-2 border-green-800 flex items-center gap-1">
-                <Activity size={12} /> +12.4% (24H)
-              </div>
-            </div>
-            
-            <div className="h-80 w-full bg-banger-black relative overflow-hidden p-0">
-              {/* Grid lines */}
-              <div className="absolute inset-0 grid grid-cols-6 gap-0 pointer-events-none opacity-10">
-                 <div className="border-r border-white h-full"></div>
-                 <div className="border-r border-white h-full"></div>
-                 <div className="border-r border-white h-full"></div>
-                 <div className="border-r border-white h-full"></div>
-                 <div className="border-r border-white h-full"></div>
-                 <div className="border-r border-white h-full"></div>
-              </div>
-              
-              <svg className="w-full h-full" viewBox="0 0 800 150" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="chartGradient" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor={selectedMetric === 'VIEWS' ? '#3b82f6' : selectedMetric === 'RETWEETS' ? '#22c55e' : selectedMetric === 'LIKES' ? '#ef4444' : '#f97316'} stopOpacity="0.5" />
-                    <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                <polyline
-                  fill="url(#chartGradient)"
-                  stroke={selectedMetric === 'VIEWS' ? '#3b82f6' : selectedMetric === 'RETWEETS' ? '#22c55e' : selectedMetric === 'LIKES' ? '#ef4444' : '#f97316'}
-                  strokeWidth="4"
-                  points={`${chartPoints} 800,150 0,150`}
-                  vectorEffect="non-scaling-stroke"
-                />
-                <polyline
-                  fill="none"
-                  stroke={selectedMetric === 'VIEWS' ? '#3b82f6' : selectedMetric === 'RETWEETS' ? '#22c55e' : selectedMetric === 'LIKES' ? '#ef4444' : '#f97316'}
-                  strokeWidth="4"
-                  points={chartPoints}
-                  vectorEffect="non-scaling-stroke"
-                />
-              </svg>
-              
-              <div className="absolute bottom-4 right-4 font-mono text-xs text-banger-yellow animate-pulse">
-                ● LIVE FEED
-              </div>
-            </div>
-          </div>
-
-          {/* AI ORACLE SECTION */}
-          <div className="bg-banger-purple border-4 border-black shadow-hard p-6 md:p-8 text-white relative overflow-hidden group">
-             <div className="absolute -right-10 -bottom-10 opacity-20 transform group-hover:scale-110 transition-transform duration-700">
-               <BrainCircuit size={200} />
+                <div className={`font-mono text-xs ${theme.mainColor} text-white px-2 py-1 border-2 border-black dark:border-white`}>
+                    {selectedMetric} ONLY
+                </div>
              </div>
              
-             <div className="relative z-10">
-               <div className="flex items-center gap-3 mb-4">
-                 <div className="bg-white text-banger-purple p-2 border-2 border-black">
-                   <BrainCircuit size={24} />
-                 </div>
-                 <h3 className="font-display text-3xl uppercase text-banger-yellow drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
-                   AI Vibe Check
-                 </h3>
-               </div>
-               
-               <p className="font-mono text-sm mb-6 max-w-lg leading-relaxed">
-                 Not sure where to put your chips? Our Gemini-powered oracle analyzes the timeline sentiment, meme velocity, and cultural impact.
-               </p>
-
-               {!aiAnalysis.result && (
-                 <BrutalistButton 
-                   onClick={runAiAnalysis} 
-                   disabled={aiAnalysis.loading}
-                   className="bg-white text-black hover:bg-banger-cyan border-white"
-                 >
-                   {aiAnalysis.loading ? "COMMUNING WITH THE MACHINE..." : "RUN ANALYSIS"}
-                 </BrutalistButton>
-               )}
-
-               {aiAnalysis.result && (
-                 <div className="bg-white text-black border-4 border-black p-5 animate-[pop_0.3s_ease-out] shadow-hard">
-                    <div className="flex justify-between items-center border-b-4 border-black pb-3 mb-3">
-                       <span className="font-mono font-bold uppercase text-sm text-gray-500">Verdict</span>
-                       <span className={`font-display text-3xl ${
-                         aiAnalysis.result.verdict === 'BANG' ? 'text-green-600' : 'text-red-600'
-                       }`}>{aiAnalysis.result.verdict}</span>
-                    </div>
-                    <div className="font-mono text-sm mb-4 italic bg-gray-100 p-2 border-l-4 border-black">
-                      "{aiAnalysis.result.reasoning}"
-                    </div>
-                    <div className="w-full bg-gray-300 h-6 border-2 border-black relative">
-                      <div 
-                        className="h-full bg-gradient-to-r from-banger-pink to-banger-purple border-r-2 border-black transition-all duration-1000" 
-                        style={{ width: `${aiAnalysis.result.hypeScore}%` }}
-                      ></div>
-                      <div className="absolute inset-0 flex items-center justify-center font-mono text-xs font-bold text-white mix-blend-difference">
-                        HYPE SCORE: {aiAnalysis.result.hypeScore}/100
-                      </div>
-                    </div>
-                 </div>
-               )}
+             <div className="relative h-40 w-full border-l-2 border-b-2 border-black dark:border-white bg-white dark:bg-black overflow-hidden">
+                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(black_1px,transparent_1px)] dark:bg-[radial-gradient(white_1px,transparent_1px)] bg-[size:10px_10px]"></div>
+                <svg className="absolute bottom-0 left-0 w-full h-full overflow-visible" preserveAspectRatio="none">
+                    <path d="M 0 160 Q 150 140 300 80 T 600 0" fill="none" stroke="currentColor" className="text-black dark:text-white" strokeWidth="4" vectorEffect="non-scaling-stroke" />
+                    <circle cx="40%" cy="50%" r="6" className={`${theme.textColor} fill-current animate-ping`} />
+                    <circle cx="40%" cy="50%" r="6" className="fill-black dark:fill-white" />
+                </svg>
              </div>
           </div>
-
         </div>
 
-        {/* RIGHT COLUMN: Trading Panel & Social (4 cols) */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="sticky top-24 space-y-6">
+        {/* RIGHT: TRADE TERMINAL */}
+        <div className="lg:col-span-5 flex flex-col gap-6">
             
-            {/* PASSING THE SPECIFIC METRIC DATA TO TRADE PANEL */}
-            <TradePanel 
-              market={market} 
-              metricType={selectedMetric}
-              metricData={activeMetricData}
-            />
-            
-            {/* Share Section */}
-            <div className="bg-white border-4 border-black shadow-hard p-4">
-              <div className="font-display text-lg mb-3 uppercase">Spread the Hype</div>
-              <div className="grid grid-cols-2 gap-3">
-                <BrutalistButton 
-                  size="sm" 
-                  variant="outline" 
-                  className="w-full flex justify-center gap-2 bg-[#1DA1F2] text-white hover:bg-[#1DA1F2]/90 border-black"
-                  onClick={() => window.open(`https://twitter.com/intent/tweet?text=Betting on ${market.title} on BANGR`, '_blank')}
-                >
-                  <Twitter size={18} fill="currentColor" /> TWEET
-                </BrutalistButton>
-                <BrutalistButton 
-                  size="sm" 
-                  variant="outline" 
-                  className="w-full flex justify-center gap-2"
-                  onClick={handleCopyLink}
-                >
-                  {copied ? <span className="font-bold text-green-600">COPIED</span> : <><Copy size={18} /> LINK</>}
-                </BrutalistButton>
-              </div>
+            {/* COLOR-CODED VAULT TICKET */}
+            {/* Shadow layer for jagged effect */}
+            <div className="relative">
+                <div className="absolute top-2 left-2 w-full h-full bg-black dark:bg-white border-4 border-black dark:border-white border-b-0 jagged-bottom jagged-black z-0"></div>
+                
+                <div className={`relative ${theme.mainColor} border-4 border-black dark:border-white border-b-0 jagged-bottom ${theme.jaggedClass} z-10`}>
+                    {/* Ticket Notches */}
+                    <div className="ticket-hole-left"></div>
+                    <div className="ticket-hole-right"></div>
+                    
+                    <div className="p-6 text-white text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-full opacity-10 pattern-dots"></div>
+                        <div className="relative z-10">
+                            <div className="flex items-center justify-center gap-2 font-mono text-sm font-bold uppercase mb-2 border-b-2 border-white/30 pb-2 inline-block px-4">
+                                {theme.icon} {theme.name} VAULT
+                            </div>
+                            {/* FORCE BLACK DROP SHADOW IN BOTH LIGHT AND DARK MODES FOR WHITE TEXT ON COLOR */}
+                            <div className="font-display text-6xl drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]">
+                                ${activeMetricData.vaultValue.toLocaleString()}
+                            </div>
+                            <div className="mt-2 font-mono text-xs bg-black/20 inline-block px-2 rounded">
+                                PAYOUT IF TARGET HIT
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Dashed Divider */}
+                    <div className="border-t-4 border-dashed border-black dark:border-white bg-white dark:bg-zinc-900 h-2"></div>
+                    
+                    <div className="bg-white dark:bg-zinc-900 p-2 flex justify-between items-center font-mono text-xs font-bold px-6 pb-4 dark:text-white">
+                        <span className="text-gray-500 dark:text-gray-400">PROGRESS</span>
+                        <div className="flex items-center gap-2">
+                            <div className="w-24 h-3 border-2 border-black dark:border-white bg-gray-200 dark:bg-zinc-800">
+                                <div className={`h-full ${theme.mainColor} border-r-2 border-black dark:border-white`} style={{width: `${activeMetricData.progress}%`}}></div>
+                            </div>
+                            <span>{activeMetricData.progress}%</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* Activity Feed */}
-            <div className="bg-white border-4 border-black shadow-hard p-4 max-h-60 overflow-y-auto">
-               <h4 className="font-mono font-bold text-xs mb-3 uppercase text-gray-500 flex items-center gap-2">
-                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                 Live Activity
-               </h4>
-               <div className="space-y-3 font-mono text-xs">
-                 {[...Array(4)].map((_, i) => (
-                   <div key={i} className="flex items-center gap-2 border-b border-gray-200 pb-2 last:border-0">
-                     <div className="w-6 h-6 bg-gray-200 border border-black rounded-full"></div>
-                     <div className="flex-grow">
-                       <span className="font-bold">anon{Math.floor(Math.random()*1000)}</span>
-                       <span className="text-gray-500 mx-1">bought</span>
-                       <span className={`font-bold ${Math.random() > 0.5 ? "text-green-600" : "text-red-500"}`}>
-                         {Math.random() > 0.5 ? "YES" : "NO"}
-                       </span>
-                     </div>
-                     <span className="font-bold">${Math.floor(Math.random()*500)}</span>
-                   </div>
-                 ))}
-               </div>
+            {/* LIVE FEED */}
+            <div className="bg-white dark:bg-zinc-900 border-4 border-black dark:border-white shadow-hard dark:shadow-hard-white">
+                <div className="bg-black dark:bg-white text-white dark:text-black p-2 flex justify-between items-center font-mono text-xs font-bold px-4">
+                    <span className="flex items-center gap-2"><Activity size={14} /> LIVE {selectedMetric} TRADES</span>
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                </div>
+                <div className="h-32 overflow-hidden relative">
+                    {trades.map((trade, i) => (
+                        <div key={i} className="flex justify-between items-center px-4 py-1.5 border-b border-gray-100 dark:border-zinc-800 font-mono text-[10px] dark:text-gray-300">
+                            <span className="font-bold">{trade.user}</span>
+                            <span className={trade.type === 'BUY' ? 'text-green-600' : 'text-red-600'}>
+                                {trade.type} {trade.amount}
+                            </span>
+                        </div>
+                    ))}
+                    <div className="absolute bottom-0 w-full h-8 bg-gradient-to-t from-white dark:from-zinc-900 to-transparent"></div>
+                </div>
             </div>
 
-          </div>
+            {/* THEMED TRADE PANEL */}
+            <div className="flex-grow">
+                <TradePanel 
+                    market={market} 
+                    metricType={selectedMetric} 
+                    metricData={activeMetricData} 
+                    userTickets={userTickets}
+                    themeColor={theme.mainColor}
+                />
+            </div>
+
         </div>
-
       </div>
     </div>
   );
