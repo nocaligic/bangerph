@@ -8,8 +8,8 @@
 
 | Phase | Focus | Estimated Time | Status |
 |-------|-------|----------------|--------|
-| Phase 1 | Migration & Setup | 1 hour | ⬜ Not Started |
-| Phase 2 | Contract Simplification | 2-3 hours | ⬜ Not Started |
+| Phase 1 | Migration & Setup | 1 hour | ✅ Complete |
+| Phase 2 | Contract Simplification | 2-3 hours | ✅ Complete |
 | Phase 3 | Deploy to Testnet | 1 hour | ⬜ Not Started |
 | Phase 4 | Frontend Integration | 3-4 hours | ⬜ Not Started |
 | Phase 5 | Testing & Polish | 2 hours | ⬜ Not Started |
