@@ -4,7 +4,7 @@ import { ShoppingCart, Tag, Zap } from 'lucide-react';
 
 export const GlobalPulse: React.FC = () => {
   const [events, setEvents] = useState([
-    { id: '1', user: 'anon_0x', type: 'BUY', market: 'Elon Alphabet', amount: '420 TIX', time: 'Just now' },
+    { id: '1', user: 'anon_0x', type: 'BUY', market: 'Elon Alphabet', amount: '$420', time: 'Just now' },
     { id: '2', user: 'whale_1', type: 'CREATE', market: 'BTC Cross', time: '2m ago' },
   ]);
 
@@ -14,10 +14,10 @@ export const GlobalPulse: React.FC = () => {
       const markets = ['Elon Reform', 'BTC Moon', 'NYT Drama', 'Meme Alpha'];
       const newEvent = {
         id: Math.random().toString(),
-        user: users[Math.floor(Math.random() * users.length)] + '_' + Math.floor(Math.random()*99),
+        user: users[Math.floor(Math.random() * users.length)] + '_' + Math.floor(Math.random() * 99),
         type: Math.random() > 0.3 ? 'BUY' : 'CREATE',
         market: markets[Math.floor(Math.random() * markets.length)],
-        amount: Math.floor(Math.random() * 1000) + ' TIX',
+        amount: '$' + (Math.floor(Math.random() * 500) + 10),
         time: 'Just now'
       };
       setEvents(prev => [newEvent, ...prev.slice(0, 4)]);
@@ -39,8 +39,8 @@ export const GlobalPulse: React.FC = () => {
           <div key={e.id} className="border-l-2 border-banger-cyan pl-2 animate-in slide-in-from-right">
             <div className="text-gray-500 text-[10px]">@{e.user} • {e.time}</div>
             <div className="text-white flex items-center gap-1 uppercase font-bold text-[9px]">
-               {e.type === 'BUY' ? <ShoppingCart size={10} className="text-banger-pink"/> : <Tag size={10} className="text-banger-yellow"/>}
-               {e.type === 'BUY' ? `BOUGHT ${e.amount}` : `CREATED MARKET`}
+              {e.type === 'BUY' ? <ShoppingCart size={10} className="text-banger-pink" /> : <Tag size={10} className="text-banger-yellow" />}
+              {e.type === 'BUY' ? `BOUGHT ${e.amount}` : `CREATED MARKET`}
             </div>
             <div className="text-banger-cyan truncate text-[10px]">{e.market}</div>
           </div>
