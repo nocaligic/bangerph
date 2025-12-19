@@ -5,28 +5,33 @@ import { AnalysisResult, MarketCategory } from "../types";
 const apiKey = process.env.API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
 
-export const analyzeVirality = async (tweetContent: string): Promise<AnalysisResult> => {
+export interface DetailedAnalysis extends AnalysisResult {
+  narrative: string; // Cultural context
+}
+
+export const analyzeVirality = async (tweetContent: string): Promise<DetailedAnalysis> => {
   if (!apiKey) {
     console.warn("No API Key provided for Gemini");
     return {
       hypeScore: 69,
       reasoning: "API Key missing. Simulating maximum aesthetic hype.",
-      verdict: "BANG"
+      verdict: "BANG",
+      narrative: "This tweet is tapping into the current zeitgeist of decentralized finance and internet subcultures. It's high-octane alpha."
     };
   }
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Analyze the viral potential of this tweet content for a prediction market called 'BANGR'.
-      We need to determine if this content is worth betting on.
+      model: "gemini-3-flash-preview",
+      contents: `Analyze the viral potential and cultural context of this tweet for a prediction market called 'BANGR'.
       
       Tweet Content: "${tweetContent}"
       
       Provide a JSON response with:
       - hypeScore (integer 0-100)
-      - reasoning (string, keep it short, punchy, gen-z slang, neo-brutalist style. Focus on "Alpha" or "Cringe" factors.)
-      - verdict (string, must be exactly one of: "BANG", "FLOP", "MID")
+      - reasoning (string, short, gen-z slang)
+      - verdict (string: "BANG", "FLOP", "MID")
+      - narrative (string, 2-3 sentences explaining the CULTURAL CONTEXT and why traders would bet on this. Be specific about internet trends.)
       `,
       config: {
         responseMimeType: "application/json",
@@ -36,8 +41,9 @@ export const analyzeVirality = async (tweetContent: string): Promise<AnalysisRes
             hypeScore: { type: Type.INTEGER },
             reasoning: { type: Type.STRING },
             verdict: { type: Type.STRING, enum: ["BANG", "FLOP", "MID"] },
+            narrative: { type: Type.STRING },
           },
-          required: ["hypeScore", "reasoning", "verdict"],
+          required: ["hypeScore", "reasoning", "verdict", "narrative"],
         }
       }
     });
@@ -45,13 +51,14 @@ export const analyzeVirality = async (tweetContent: string): Promise<AnalysisRes
     const text = response.text;
     if (!text) throw new Error("No response from Gemini");
     
-    return JSON.parse(text) as AnalysisResult;
+    return JSON.parse(text) as DetailedAnalysis;
   } catch (error) {
     console.error("Gemini analysis failed:", error);
     return {
       hypeScore: 0,
       reasoning: "AI broke. Too much hype.",
-      verdict: "MID"
+      verdict: "MID",
+      narrative: "The narrative is currently obscured by high-frequency signal noise. Proceed with caution."
     };
   }
 };
@@ -59,7 +66,7 @@ export const analyzeVirality = async (tweetContent: string): Promise<AnalysisRes
 export const generateMarketDetails = async (tweetContent: string): Promise<{ title: string; description: string; category: MarketCategory }> => {
   if (!apiKey) {
     return {
-      title: "Simulated Market Title based on Tweet",
+      title: "Simulated Market Title",
       description: "This is a simulated description because the API key is missing.",
       category: "SHITPOST"
     };
@@ -67,10 +74,9 @@ export const generateMarketDetails = async (tweetContent: string): Promise<{ tit
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3-flash-preview",
       contents: `Create a prediction market title and description based on this tweet. 
-      The market title should be a question about the outcome (e.g., "Will X go viral?" or "Is this Alpha?"). 
-      The description should be punchy.
+      The market title should be a question about the outcome. 
       Category must be one of: SHITPOST, RAGEBAIT, ALPHA, DRAMA.
 
       Tweet: "${tweetContent}"

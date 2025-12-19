@@ -8,9 +8,11 @@ import { CreateMarketModal } from './components/CreateMarketModal';
 import { BangrLogo } from './components/BangrLogo';
 import { MarketCard } from './components/MarketCard';
 import { Footer } from './components/Footer';
-import { Wallet, Plus, ChevronDown, LayoutDashboard, Bell, Briefcase, DollarSign, Zap, LogOut, ArrowRight, Target, Radar, TrendingUp, Moon, Sun } from 'lucide-react';
+import { HypeRadar } from './components/HypeRadar';
+import { GlobalActivity } from './components/GlobalActivity';
+import { Wallet, Plus, ChevronDown, LayoutDashboard, LogOut, ArrowRight, Briefcase, DollarSign } from 'lucide-react';
 
-// EXTENDED MOCK DATA TO SHOWCASE VARIATIONS
+// MOCK DATA (UNCHANGED FOR BANGER)
 const MOCK_MARKETS: Market[] = [
   {
     id: '1',
@@ -195,13 +197,6 @@ export default function App() {
     handleMarketClick(newMarket);
   };
 
-  const handleNavigateFromPortfolio = (marketId: string) => {
-     const market = markets.find(m => m.id === marketId);
-     if (market) {
-       handleMarketClick(market);
-     }
-  };
-
   const toggleDarkMode = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setIsDarkMode(!isDarkMode);
@@ -253,22 +248,20 @@ export default function App() {
                <div className="flex items-center gap-4 md:gap-6">
                  {/* Stats Group (Desktop) */}
                  <div className="hidden md:flex items-center gap-4 mr-2">
-                      <div className="flex items-center border-2 border-black dark:border-white bg-white dark:bg-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_#ffffff] hover:translate-x-[2px] hover:translate-y-[2px] transition-all">
-                          <div className="bg-banger-pink text-white px-2 py-1.5 font-mono text-[10px] md:text-xs font-bold border-r-2 border-black dark:border-white uppercase flex items-center gap-1">
-                              <Briefcase size={14} className="stroke-[3px]" />
-                              P&L
+                      <div className="flex items-center border-2 border-black dark:border-white bg-white dark:bg-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_#ffffff]">
+                          <div className="bg-banger-pink text-white px-2 py-1.5 font-mono text-xs font-bold border-r-2 border-black dark:border-white uppercase flex items-center gap-1">
+                              <Briefcase size={14} className="stroke-[3px]" /> P&L
                           </div>
-                          <div className="px-3 py-1.5 font-mono font-bold text-sm md:text-base min-w-[80px] text-center text-black dark:text-white">
+                          <div className="px-3 py-1.5 font-mono font-bold text-sm text-black dark:text-white">
                               ${portfolioValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </div>
                       </div>
 
-                      <div className="flex items-center border-2 border-black dark:border-white bg-white dark:bg-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_#ffffff] hover:translate-x-[2px] hover:translate-y-[2px] transition-all">
-                          <div className="bg-green-600 text-white px-2 py-1.5 font-mono text-[10px] md:text-xs font-bold border-r-2 border-black dark:border-white uppercase flex items-center gap-1">
-                              <DollarSign size={14} className="stroke-[3px]" />
-                              CASH
+                      <div className="flex items-center border-2 border-black dark:border-white bg-white dark:bg-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_#ffffff]">
+                          <div className="bg-green-600 text-white px-2 py-1.5 font-mono text-xs font-bold border-r-2 border-black dark:border-white uppercase flex items-center gap-1">
+                              <DollarSign size={14} className="stroke-[3px]" /> CASH
                           </div>
-                          <div className="px-3 py-1.5 font-mono font-bold text-sm md:text-base min-w-[80px] text-center text-black dark:text-white">
+                          <div className="px-3 py-1.5 font-mono font-bold text-sm text-black dark:text-white">
                               ${USER_BALANCE.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </div>
                       </div>
@@ -280,21 +273,18 @@ export default function App() {
                       onClick={() => setIsWalletDropdownOpen(!isWalletDropdownOpen)}
                       className="flex items-center gap-2 focus:outline-none"
                     >
-                      <div className="w-10 h-10 bg-gradient-to-br from-banger-pink via-banger-purple to-banger-cyan border-2 border-black dark:border-white shadow-hard-sm dark:shadow-hard-sm-white hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] transition-all rounded-full"></div>
+                      <div className="w-10 h-10 bg-gradient-to-br from-banger-pink via-banger-purple to-banger-cyan border-2 border-black dark:border-white shadow-hard-sm dark:shadow-hard-sm-white rounded-full"></div>
                       <ChevronDown size={16} className={`transition-transform duration-200 ${isWalletDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
 
                     {isWalletDropdownOpen && (
-                      <div className="absolute top-full right-0 mt-4 w-72 bg-white dark:bg-black border-4 border-black dark:border-white shadow-hard dark:shadow-hard-white z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="absolute top-full right-0 mt-4 w-72 bg-white dark:bg-black border-4 border-black dark:border-white shadow-hard dark:shadow-hard-white z-50">
                         <div className="p-4 border-b-4 border-black dark:border-white bg-banger-yellow text-black">
                            <div className="font-mono text-xs font-bold uppercase opacity-70">Connected Wallet</div>
                            <div className="font-mono font-bold truncate">Hit8...xQ29</div>
                         </div>
                         <button 
-                          onClick={() => {
-                            setView(ViewState.PORTFOLIO);
-                            setIsWalletDropdownOpen(false);
-                          }}
+                          onClick={() => { setView(ViewState.PORTFOLIO); setIsWalletDropdownOpen(false); }}
                           className="w-full text-left px-4 py-3 font-mono font-bold hover:bg-black dark:hover:bg-white hover:text-white dark:hover:text-black border-b-2 border-black dark:border-white flex items-center gap-2 transition-colors group"
                         >
                           <LayoutDashboard size={16} className="group-hover:text-banger-yellow" /> MY BAGS
@@ -312,8 +302,7 @@ export default function App() {
              ) : (
                <BrutalistButton size="sm" onClick={handleConnectWallet} id="connect-btn">
                   <div className="flex items-center gap-2">
-                    <Wallet size={16} />
-                    CONNECT
+                    <Wallet size={16} /> CONNECT
                   </div>
                </BrutalistButton>
              )}
@@ -325,8 +314,8 @@ export default function App() {
             <>
               <div className="grid grid-cols-1 lg:grid-cols-12 border-b-4 border-black dark:border-white bg-white dark:bg-zinc-900">
                 
-                <div className="lg:col-span-7 border-b-4 lg:border-b-0 lg:border-r-4 border-black dark:border-white p-6 md:p-12 flex flex-col justify-center relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-10 pointer-events-none select-none">
+                <div className="lg:col-span-7 border-b-4 lg:border-b-0 lg:border-r-4 border-black dark:border-white p-6 md:p-12 flex flex-col justify-center relative overflow-hidden min-h-[500px]">
+                  <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-5 pointer-events-none select-none">
                       <div className="font-display text-[200px] leading-none text-black dark:text-white whitespace-nowrap -ml-20">BANGR</div>
                   </div>
 
@@ -334,7 +323,6 @@ export default function App() {
                       <div className="inline-block bg-black dark:bg-white text-white dark:text-black font-mono text-xs px-3 py-1 mb-4 transform -rotate-2 shadow-[4px_4px_0px_0px_#ccff00]">
                         THE NASDAQ FOR TWITTER
                       </div>
-                      {/* FIXED HEADLINE WITH IMPROVED DARK MODE TEXT RENDERING */}
                       <h1 className="font-display text-6xl md:text-8xl lg:text-9xl uppercase leading-[0.85] mb-6 dark:text-white antialiased">
                         IF IT <span className="text-banger-pink drop-shadow-[4px_4px_0px_#000] dark:drop-shadow-none">BANGS</span> <br/>
                         YOU <span className="text-banger-green drop-shadow-[4px_4px_0px_#000] dark:drop-shadow-none">BANK</span>
@@ -347,23 +335,22 @@ export default function App() {
                         </ol>
                       </div>
                       <div className="flex flex-wrap gap-4">
-                        <BrutalistButton size="lg" className="flex items-center gap-2 text-xl h-16 px-10">
+                        <BrutalistButton size="lg" className="flex items-center gap-2 text-xl h-16 px-10" onClick={() => marketsRef.current?.scrollIntoView({behavior: 'smooth'})}>
                           ENTER MARKETS <ArrowRight strokeWidth={3} />
                         </BrutalistButton>
                       </div>
                   </div>
                 </div>
 
-                <div className="lg:col-span-5 bg-gray-100 dark:bg-zinc-950 relative flex flex-col min-h-[300px]">
-                   <div className="flex-grow flex items-center justify-center p-8 text-center">
-                      <div>
-                          <div className="font-display text-6xl mb-2 text-gray-300 dark:text-zinc-700">LIVE FEED</div>
-                          <div className="font-mono text-sm text-gray-400 dark:text-zinc-600">TRACKING GLOBAL HYPE...</div>
-                      </div>
-                   </div>
+                <div className="lg:col-span-5 bg-black relative flex flex-col h-[500px] lg:h-auto overflow-hidden">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 h-full">
+                        <HypeRadar />
+                        <GlobalActivity />
+                    </div>
                 </div>
               </div>
 
+              {/* Category Filter */}
               <div className="sticky top-[67px] md:top-[75px] z-40 bg-[#f0f0f0] dark:bg-zinc-900 border-b-4 border-black dark:border-white pt-1">
                 <div className="flex gap-2 px-4 py-2 max-w-7xl mx-auto overflow-x-auto no-scrollbar">
                   {categories.map((cat) => (
@@ -386,10 +373,9 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Market Grid */}
               <div className="relative border-t-4 border-black dark:border-white bg-[#ebebeb] dark:bg-black min-h-screen">
                 <main ref={marketsRef} className="max-w-7xl mx-auto px-6 md:px-8 py-16 scroll-mt-32 relative z-10 xl:pl-20 pb-24">
-                  
-                  {/* CHANGED TO MASONRY (CSS COLUMNS) FOR PINTEREST STYLE SPACING */}
                   <div className="columns-1 md:columns-2 lg:columns-3 gap-8">
                     {filteredMarkets.map((market) => (
                       <div key={market.id} className="break-inside-avoid pb-4">
@@ -400,7 +386,6 @@ export default function App() {
                       </div>
                     ))}
                   </div>
-
                 </main>
               </div>
             </>
@@ -417,7 +402,7 @@ export default function App() {
           {view === ViewState.PORTFOLIO && (
             <Portfolio 
               positions={MOCK_POSITIONS}
-              onNavigateMarket={handleNavigateFromPortfolio}
+              onNavigateMarket={(id) => handleMarketClick(markets.find(m => m.id === id)!)}
               onBrowse={handleBackToHome}
             />
           )}
