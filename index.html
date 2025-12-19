@@ -1,90 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BANGR | Predict the Hype</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              'banger-black': '#121212',
-              'banger-white': '#ffffff',
-              'banger-yellow': '#ccff00',
-              'banger-pink': '#ff00ff',
-              'banger-cyan': '#00ffff',
-              'banger-purple': '#9d4edd',
-            },
-            fontFamily: {
-              'display': ['"Archivo Black"', 'sans-serif'],
-              'mono': ['"Space Mono"', 'monospace'],
-            },
-            boxShadow: {
-              'hard': '8px 8px 0px 0px #000000',
-              'hard-sm': '4px 4px 0px 0px #000000',
-              'hard-hover': '2px 2px 0px 0px #000000',
-              'arcade': '6px 6px 0px 0px rgba(0,0,0,1)',
-              'arcade-pressed': '0px 0px 0px 0px rgba(0,0,0,1)',
-            }
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BANGR | Predict the Hype</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+    rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'banger-black': '#121212',
+            'banger-white': '#ffffff',
+            'banger-yellow': '#ccff00',
+            'banger-pink': '#ff00ff',
+            'banger-cyan': '#00ffff',
+            'banger-purple': '#9d4edd',
+          },
+          fontFamily: {
+            'display': ['"Archivo Black"', 'sans-serif'],
+            'mono': ['"Space Mono"', 'monospace'],
+          },
+          boxShadow: {
+            'hard': '8px 8px 0px 0px #000000',
+            'hard-sm': '4px 4px 0px 0px #000000',
+            'hard-hover': '2px 2px 0px 0px #000000',
+            'arcade': '6px 6px 0px 0px rgba(0,0,0,1)',
+            'arcade-pressed': '0px 0px 0px 0px rgba(0,0,0,1)',
           }
         }
       }
-    </script>
-    <style>
-      body {
-        background-color: #f0f0f0;
-        background-image: radial-gradient(#000 1px, transparent 1px);
-        background-size: 20px 20px;
-      }
-      /* Custom Scrollbar */
-      ::-webkit-scrollbar {
-        width: 12px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #ffffff;
-        border-left: 4px solid black;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #ccff00;
-        border: 4px solid black;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #ff00ff;
-      }
-      .marquee-container {
-        overflow: hidden;
-        white-space: nowrap;
-      }
-      .marquee-content {
-        display: inline-block;
-        animation: marquee 20s linear infinite;
-      }
-      @keyframes marquee {
-        0% { transform: translateX(0); }
-        100% { transform: translateX(-50%); }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #f0f0f0;
+      background-image: radial-gradient(#000 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 12px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #ffffff;
+      border-left: 4px solid black;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #ccff00;
+      border: 4px solid black;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #ff00ff;
+    }
+
+    .marquee-container {
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .marquee-content {
+      display: inline-block;
+      animation: marquee 20s linear infinite;
+    }
+
+    @keyframes marquee {
+      0% {
+        transform: translateX(0);
       }
 
-      /* Patterns */
-      .pattern-dots {
-        background-image: radial-gradient(#000 1px, transparent 1px);
-        background-size: 4px 4px;
+      100% {
+        transform: translateX(-50%);
       }
-      .pattern-lines {
-        background-image: repeating-linear-gradient(45deg, #000 0, #000 1px, transparent 0, transparent 50%);
-        background-size: 10px 10px;
-      }
-      .pattern-grid {
-        background-size: 20px 20px;
-        background-image:
-          linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
-          linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px);
-      }
-    </style>
+    }
+
+    /* Patterns */
+    .pattern-dots {
+      background-image: radial-gradient(#000 1px, transparent 1px);
+      background-size: 4px 4px;
+    }
+
+    .pattern-lines {
+      background-image: repeating-linear-gradient(45deg, #000 0, #000 1px, transparent 0, transparent 50%);
+      background-size: 10px 10px;
+    }
+
+    .pattern-grid {
+      background-size: 20px 20px;
+      background-image:
+        linear-gradient(to right, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -97,7 +114,10 @@
 }
 </script>
 </head>
-  <body>
-    <div id="root"></div>
-  </body>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
 </html>

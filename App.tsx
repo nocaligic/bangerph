@@ -6,9 +6,8 @@ import { MarketDetail } from './components/MarketDetail';
 import { BrutalistButton } from './components/BrutalistButton';
 import { CreateMarketModal } from './components/CreateMarketModal';
 import { BangrLogo } from './components/BangrLogo';
-import { HypeRadar } from './components/HypeRadar';
 import { GlobalPulse } from './components/GlobalPulse';
-import { Wallet, Globe, Plus, ArrowRight, Zap, Flame } from 'lucide-react';
+import { Wallet, Plus, ArrowRight, Flame } from 'lucide-react';
 
 const MOCK_MARKETS: Market[] = [
   {
@@ -68,8 +67,8 @@ export default function App() {
   const [markets, setMarkets] = useState<Market[]>(MOCK_MARKETS);
   const marketsRef = useRef<HTMLDivElement>(null);
 
-  const filteredMarkets = activeCategory === 'ALL' 
-    ? markets 
+  const filteredMarkets = activeCategory === 'ALL'
+    ? markets
     : markets.filter(m => m.category === activeCategory);
 
   const categories = ['ALL', 'SHITPOST', 'RAGEBAIT', 'ALPHA', 'DRAMA'];
@@ -93,7 +92,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f0f0f0] text-black font-sans selection:bg-banger-pink selection:text-white pb-20">
-      
+
       {/* TOP MARQUEE */}
       <div className="bg-banger-black text-banger-yellow font-mono uppercase text-[10px] md:text-sm py-2 border-b-4 border-black overflow-hidden relative z-50">
         <div className="marquee-container">
@@ -115,13 +114,13 @@ export default function App() {
           </div>
         </div>
 
-        <div className="flex gap-2 md:gap-4">
-           <BrutalistButton size="sm" variant="outline" className="hidden sm:flex" onClick={() => setIsCreateModalOpen(true)}>
-              <Plus size={16} strokeWidth={4} /> <span className="ml-1">CREATE</span>
-           </BrutalistButton>
-           <BrutalistButton size="sm">
-              <Wallet size={16} /> <span className="ml-1">CONNECT</span>
-           </BrutalistButton>
+        <div className="flex gap-2 md:gap-3">
+          <BrutalistButton size="sm" variant="outline" className="hidden sm:flex items-center gap-1" onClick={() => setIsCreateModalOpen(true)}>
+            <Plus size={14} strokeWidth={3} /> CREATE
+          </BrutalistButton>
+          <BrutalistButton size="sm" className="flex items-center gap-1">
+            <Wallet size={14} /> CONNECT
+          </BrutalistButton>
         </div>
       </header>
 
@@ -130,31 +129,30 @@ export default function App() {
           {/* COMPACT DASHBOARD HERO */}
           <section className="grid grid-cols-1 lg:grid-cols-12 border-b-4 border-black bg-white">
             <div className="lg:col-span-7 p-6 md:p-12 flex flex-col justify-center border-b-4 lg:border-b-0 lg:border-r-4 border-black relative overflow-hidden bg-pattern-grid">
-               <div className="relative z-10">
-                  <div className="inline-block bg-black text-white font-mono text-[10px] px-2 py-0.5 mb-4 transform -rotate-1 shadow-[2px_2px_0px_0px_#ccff00]">
-                    TRADING PROTOCOL v1.0
-                  </div>
-                  <h1 className="font-display text-4xl md:text-6xl lg:text-7xl uppercase leading-[0.85] mb-6 tracking-tighter">
-                    BET ON <br/>
-                    <span className="text-banger-pink">VIRAL</span> METRICS
-                  </h1>
-                  <p className="font-mono text-xs md:text-sm max-w-md mb-8 border-l-4 border-banger-cyan pl-4 text-gray-600">
-                    The Nasdaq for Twitter. Spot viral content early, buy prediction tickets, and profit when the hype hits the target.
-                  </p>
-                  <div className="flex flex-wrap gap-4">
-                    <BrutalistButton size="md" className="flex items-center gap-2" onClick={() => marketsRef.current?.scrollIntoView({ behavior: 'smooth' })}>
-                      EXPLORE <ArrowRight size={18} />
-                    </BrutalistButton>
-                    <BrutalistButton size="md" variant="outline" onClick={() => setIsCreateModalOpen(true)}>
-                      SPOT ALPHA
-                    </BrutalistButton>
-                  </div>
-               </div>
+              <div className="relative z-10">
+                <div className="inline-block bg-black text-white font-mono text-[10px] px-2 py-0.5 mb-4 transform -rotate-1 shadow-[2px_2px_0px_0px_#ccff00]">
+                  TRADING PROTOCOL v1.0
+                </div>
+                <h1 className="font-display text-4xl md:text-6xl lg:text-7xl uppercase leading-[0.85] mb-6 tracking-tighter">
+                  BET ON <br />
+                  <span className="text-banger-pink">VIRAL</span> METRICS
+                </h1>
+                <p className="font-mono text-xs md:text-sm max-w-md mb-8 border-l-4 border-banger-cyan pl-4 text-gray-600">
+                  The Nasdaq for Twitter. Spot viral content early, buy prediction tickets, and profit when the hype hits the target.
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  <BrutalistButton size="md" className="flex items-center gap-2" onClick={() => marketsRef.current?.scrollIntoView({ behavior: 'smooth' })}>
+                    EXPLORE <ArrowRight size={18} />
+                  </BrutalistButton>
+                  <BrutalistButton size="md" variant="outline" onClick={() => setIsCreateModalOpen(true)}>
+                    SPOT ALPHA
+                  </BrutalistButton>
+                </div>
+              </div>
             </div>
 
-            <div className="lg:col-span-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 h-64 lg:h-auto bg-black">
-                <HypeRadar />
-                <GlobalPulse />
+            <div className="lg:col-span-5 bg-black">
+              <GlobalPulse />
             </div>
           </section>
 
@@ -167,8 +165,8 @@ export default function App() {
                   onClick={() => setActiveCategory(cat)}
                   className={`
                     font-mono font-bold text-[10px] md:text-xs px-4 py-1.5 border-2 border-black transition-all uppercase
-                    ${activeCategory === cat 
-                      ? 'bg-black text-white shadow-[3px_3px_0px_0px_#ccff00] -translate-y-0.5' 
+                    ${activeCategory === cat
+                      ? 'bg-black text-white shadow-[3px_3px_0px_0px_#ccff00] -translate-y-0.5'
                       : 'bg-white text-black hover:bg-gray-100'}
                   `}
                 >
@@ -189,9 +187,9 @@ export default function App() {
             <div className="columns-1 md:columns-2 lg:columns-3 gap-6">
               {filteredMarkets.map((market) => (
                 <div key={market.id} className="break-inside-avoid mb-6">
-                  <MarketCard 
-                    market={market} 
-                    onBet={handleMarketClick} 
+                  <MarketCard
+                    market={market}
+                    onBet={handleMarketClick}
                   />
                 </div>
               ))}
@@ -201,14 +199,14 @@ export default function App() {
       )}
 
       {view === ViewState.MARKET && selectedMarket && (
-        <MarketDetail 
-          market={selectedMarket} 
-          onBack={handleBackToHome} 
+        <MarketDetail
+          market={selectedMarket}
+          onBack={handleBackToHome}
         />
       )}
 
       <CreateMarketModal
-        isOpen={isCreateModalOpen} 
+        isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onCreateMarket={handleCreateMarket}
       />

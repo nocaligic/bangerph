@@ -1,13 +1,43 @@
-
-import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, MarketCategory } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Lazy initialization - don't crash if no API key
+let ai: any = null;
+
+const getAI = async () => {
+  if (ai) return ai;
+
+  const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || "";
+  if (!apiKey) {
+    console.warn("No Gemini API key set. AI features will use mock data.");
+    return null;
+  }
+
+  try {
+    const { GoogleGenAI } = await import("@google/genai");
+    ai = new GoogleGenAI({ apiKey });
+    return ai;
+  } catch (e) {
+    console.warn("Failed to initialize Gemini:", e);
+    return null;
+  }
+};
 
 export const analyzeVirality = async (tweetContent: string): Promise<AnalysisResult> => {
+  const aiClient = await getAI();
+
+  if (!aiClient) {
+    // Return mock data if no API key
+    return {
+      hypeScore: Math.floor(Math.random() * 40) + 50,
+      reasoning: "AI is vibing too hard. Manual override required.",
+      verdict: Math.random() > 0.3 ? "BANG" : "MID",
+      narrative: "This content is tapping into the current zeitgeist of internet absurdity."
+    };
+  }
+
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+    const response = await aiClient.models.generateContent({
+      model: "gemini-2.0-flash",
       contents: `Analyze the viral potential and cultural context of this tweet for a prediction market called 'BANGR'.
       
       Tweet Content: "${tweetContent}"
@@ -20,22 +50,12 @@ export const analyzeVirality = async (tweetContent: string): Promise<AnalysisRes
       `,
       config: {
         responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            hypeScore: { type: Type.INTEGER },
-            reasoning: { type: Type.STRING },
-            verdict: { type: Type.STRING, enum: ["BANG", "FLOP", "MID"] },
-            narrative: { type: Type.STRING },
-          },
-          required: ["hypeScore", "reasoning", "verdict", "narrative"],
-        }
       }
     });
 
     const text = response.text;
     if (!text) throw new Error("No response from Gemini");
-    
+
     return JSON.parse(text) as AnalysisResult;
   } catch (error) {
     console.error("Gemini analysis failed:", error);
@@ -49,9 +69,19 @@ export const analyzeVirality = async (tweetContent: string): Promise<AnalysisRes
 };
 
 export const generateMarketDetails = async (tweetContent: string): Promise<{ title: string; description: string; category: MarketCategory }> => {
+  const aiClient = await getAI();
+
+  if (!aiClient) {
+    return {
+      title: "Will this go viral?",
+      description: "Betting on the absolute chaos of this tweet.",
+      category: "SHITPOST"
+    };
+  }
+
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+    const response = await aiClient.models.generateContent({
+      model: "gemini-2.0-flash",
       contents: `Create a prediction market title and description based on this tweet. 
       Title should be a short question. Description should be hype.
       Category must be one of: SHITPOST, RAGEBAIT, ALPHA, DRAMA.
@@ -60,15 +90,6 @@ export const generateMarketDetails = async (tweetContent: string): Promise<{ tit
       `,
       config: {
         responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            description: { type: Type.STRING },
-            category: { type: Type.STRING, enum: ["SHITPOST", "RAGEBAIT", "ALPHA", "DRAMA"] },
-          },
-          required: ["title", "description", "category"],
-        }
       }
     });
 
