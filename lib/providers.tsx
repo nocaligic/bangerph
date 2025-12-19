@@ -1,0 +1,44 @@
+import React from 'react';
+import { PrivyProvider } from '@privy-io/react-auth';
+import { WagmiProvider } from '@privy-io/wagmi';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { wagmiConfig } from './wagmi';
+import { bscTestnet } from 'wagmi/chains';
+
+const queryClient = new QueryClient();
+
+// Get Privy App ID from environment variable
+const PRIVY_APP_ID = (import.meta as any).env?.VITE_PRIVY_APP_ID || '';
+
+interface ProvidersProps {
+    children: React.ReactNode;
+}
+
+export function Providers({ children }: ProvidersProps) {
+    // Always render providers - Privy will show error if no app ID
+    // But wagmi hooks will still work
+    return (
+        <PrivyProvider
+            appId={PRIVY_APP_ID}
+            config={{
+                appearance: {
+                    theme: 'dark',
+                    accentColor: '#ccff00', // banger-yellow
+                },
+                supportedChains: [bscTestnet],
+                defaultChain: bscTestnet,
+                embeddedWallets: {
+                    createOnLogin: 'users-without-wallets',
+                    requireUserPasswordOnCreate: false,
+                },
+                loginMethods: ['email', 'wallet', 'twitter'],
+            }}
+        >
+            <QueryClientProvider client={queryClient}>
+                <WagmiProvider config={wagmiConfig}>
+                    {children}
+                </WagmiProvider>
+            </QueryClientProvider>
+        </PrivyProvider>
+    );
+}

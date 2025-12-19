@@ -7,7 +7,8 @@ import { BrutalistButton } from './components/BrutalistButton';
 import { CreateMarketModal } from './components/CreateMarketModal';
 import { BangrLogo } from './components/BangrLogo';
 import { GlobalPulse } from './components/GlobalPulse';
-import { Wallet, Plus, ArrowRight, Flame } from 'lucide-react';
+import { useWallet } from './lib/useWallet';
+import { Wallet, Plus, ArrowRight, Flame, LogOut } from 'lucide-react';
 
 const MOCK_MARKETS: Market[] = [
   {
@@ -66,6 +67,7 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
   const [markets, setMarkets] = useState<Market[]>(MOCK_MARKETS);
   const marketsRef = useRef<HTMLDivElement>(null);
+  const { isConnected, shortAddress, connect, disconnect } = useWallet();
 
   const filteredMarkets = activeCategory === 'ALL'
     ? markets
@@ -118,9 +120,20 @@ export default function App() {
           <BrutalistButton size="sm" variant="outline" className="hidden sm:flex items-center gap-1" onClick={() => setIsCreateModalOpen(true)}>
             <Plus size={14} strokeWidth={3} /> CREATE
           </BrutalistButton>
-          <BrutalistButton size="sm" className="flex items-center gap-1">
-            <Wallet size={14} /> CONNECT
-          </BrutalistButton>
+          {isConnected ? (
+            <div className="flex items-center gap-2">
+              <div className="bg-banger-yellow text-black font-mono text-xs px-3 py-2 border-2 border-black">
+                {shortAddress}
+              </div>
+              <BrutalistButton size="sm" variant="outline" className="flex items-center gap-1" onClick={disconnect}>
+                <LogOut size={14} />
+              </BrutalistButton>
+            </div>
+          ) : (
+            <BrutalistButton size="sm" className="flex items-center gap-1" onClick={connect}>
+              <Wallet size={14} /> CONNECT
+            </BrutalistButton>
+          )}
         </div>
       </header>
 
