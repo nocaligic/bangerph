@@ -108,10 +108,8 @@ export default function App() {
       {/* HEADER */}
       <header className="sticky top-0 z-50 bg-white border-b-4 border-black px-4 py-2 md:px-8 flex justify-between items-center shadow-lg h-[60px] md:h-[70px]">
         <div className="flex items-center gap-3 cursor-pointer group" onClick={handleBackToHome}>
-          <div className="bg-banger-yellow border-2 border-black p-1 group-hover:rotate-12 transition-transform">
-            <BangrLogo className="w-8 h-8 md:w-10 md:h-10 text-black" />
-          </div>
-          <div className="font-display text-2xl md:text-4xl tracking-tighter">
+          <BangrLogo className="h-10 md:h-12 group-hover:rotate-12 transition-transform origin-center" />
+          <div className="font-display text-3xl md:text-5xl tracking-tighter pt-1">
             BANGR
           </div>
         </div>
