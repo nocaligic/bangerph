@@ -28,8 +28,9 @@ export function Providers({ children }: ProvidersProps) {
                 supportedChains: [bscTestnet],
                 defaultChain: bscTestnet,
                 embeddedWallets: {
-                    createOnLogin: 'users-without-wallets',
-                    requireUserPasswordOnCreate: false,
+                    ethereum: {
+                        createOnLogin: 'users-without-wallets',
+                    },
                 },
                 loginMethods: ['email', 'wallet', 'twitter'],
             }}

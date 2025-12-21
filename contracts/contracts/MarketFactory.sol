@@ -7,9 +7,9 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./ShareToken.sol";
 
 /**
- * @title MarketFactory (Simplified)
+ * @title MarketFactory (with AMM)
  * @notice Creates and manages prediction markets for Twitter engagement
- * @dev Simplified version: one market per metric per tweet, fixed 24h duration
+ * @dev Uses Constant Product AMM for pricing (like Uniswap)
  */
 contract MarketFactory is Ownable, ReentrancyGuard {
 
@@ -32,8 +32,6 @@ contract MarketFactory is Ownable, ReentrancyGuard {
         ResolutionStatus status;
         uint256 yesTokenId;
         uint256 noTokenId;
-        uint256 totalYesShares;     // Total YES shares in circulation
-        uint256 totalNoShares;      // Total NO shares in circulation
     }
 
     // State variables
@@ -43,17 +41,23 @@ contract MarketFactory is Ownable, ReentrancyGuard {
     uint256 public nextMarketId;
     mapping(uint256 => Market) public markets;
 
+    // AMM Reserves: Each market has its own liquidity pool
+    mapping(uint256 => uint256) public yesReserves;  // YES shares in AMM pool
+    mapping(uint256 => uint256) public noReserves;   // NO shares in AMM pool
+
     // Market uniqueness: hash(tweetId, metric) => marketId
-    // Max 4 markets per tweet (one per metric)
     mapping(bytes32 => uint256) public marketByHash;
     mapping(bytes32 => bool) public marketExists;
 
     // Constants
-    uint256 public constant INITIAL_LIQUIDITY = 10 * 10**6; // 10 USDC (6 decimals)
-    uint256 public constant SHARES_PER_SET = 1 * 10**18;    // 1 share = 1e18
+    uint256 public constant INITIAL_LIQUIDITY = 10 * 10**6;     // 10 USDC (6 decimals)
+    uint256 public constant INITIAL_SHARES = 100 * 10**18;      // 100 shares each side
+    uint256 public constant SHARES_DECIMALS = 10**18;           // Share precision
+    uint256 public constant USDC_DECIMALS = 10**6;              // USDC precision
     uint256 public constant MARKET_DURATION = 24 hours;
     uint256 public constant RESOLUTION_DELAY = 1 hours;
-    uint256 public constant SHARE_PRICE = 1 * 10**6;        // $1 per share set (6 decimals)
+    uint256 public constant FEE_BPS = 100;                      // 1% fee (100 basis points)
+    uint256 public constant BPS_DENOMINATOR = 10000;
 
     // Events
     event MarketCreated(
@@ -69,16 +73,18 @@ contract MarketFactory is Ownable, ReentrancyGuard {
         uint256 indexed marketId,
         address indexed buyer,
         bool isYes,
-        uint256 shares,
-        uint256 cost
+        uint256 sharesReceived,
+        uint256 usdcPaid,
+        uint256 newPrice
     );
 
     event SharesSold(
         uint256 indexed marketId,
         address indexed seller,
         bool isYes,
-        uint256 shares,
-        uint256 payout
+        uint256 sharesSold,
+        uint256 usdcReceived,
+        uint256 newPrice
     );
 
     event MarketResolved(
@@ -102,8 +108,10 @@ contract MarketFactory is Ownable, ReentrancyGuard {
         collateralToken = IERC20(_collateralToken);
     }
 
+    // ============ MARKET CREATION ============
+
     /**
-     * @notice Create a new prediction market
+     * @notice Create a new prediction market with AMM liquidity
      * @param tweetUrl Full tweet URL
      * @param tweetId Tweet ID extracted from URL
      * @param authorHandle Twitter handle of tweet author
@@ -147,18 +155,21 @@ contract MarketFactory is Ownable, ReentrancyGuard {
             endTime: block.timestamp + MARKET_DURATION,
             status: ResolutionStatus.PENDING,
             yesTokenId: shareToken.getYesTokenId(marketId),
-            noTokenId: shareToken.getNoTokenId(marketId),
-            totalYesShares: 10 * SHARES_PER_SET,  // Scout gets 10 of each
-            totalNoShares: 10 * SHARES_PER_SET
+            noTokenId: shareToken.getNoTokenId(marketId)
         });
+
+        // Initialize AMM with equal reserves (50/50 starting price)
+        yesReserves[marketId] = INITIAL_SHARES;
+        noReserves[marketId] = INITIAL_SHARES;
 
         // Mark market as existing
         marketExists[marketHash] = true;
         marketByHash[marketHash] = marketId;
 
-        // Mint initial shares to scout (10 YES + 10 NO)
-        shareToken.mint(msg.sender, markets[marketId].yesTokenId, 10 * SHARES_PER_SET);
-        shareToken.mint(msg.sender, markets[marketId].noTokenId, 10 * SHARES_PER_SET);
+        // Mint initial shares to scout as reward (10 YES + 10 NO)
+        uint256 scoutShares = 10 * SHARES_DECIMALS;
+        shareToken.mint(msg.sender, markets[marketId].yesTokenId, scoutShares);
+        shareToken.mint(msg.sender, markets[marketId].noTokenId, scoutShares);
 
         emit MarketCreated(
             marketId,
@@ -170,74 +181,215 @@ contract MarketFactory is Ownable, ReentrancyGuard {
         );
     }
 
+    // ============ AMM TRADING ============
+
     /**
-     * @notice Buy YES and NO shares (a complete set for $1)
-     * @param marketId Market to buy shares in
-     * @param sets Number of share sets to buy (each set = 1 YES + 1 NO for $1)
+     * @notice Buy YES shares using USDC
+     * @param marketId Market to buy from
+     * @param usdcAmount Amount of USDC to spend
+     * @return sharesOut Amount of YES shares received
      */
-    function buyShares(uint256 marketId, uint256 sets) external nonReentrant {
+    function buyYes(uint256 marketId, uint256 usdcAmount) external nonReentrant returns (uint256 sharesOut) {
         Market storage market = markets[marketId];
         require(market.status == ResolutionStatus.PENDING, "Market not active");
         require(block.timestamp < market.endTime, "Market expired");
-        require(sets > 0, "Must buy at least 1 set");
+        require(usdcAmount > 0, "Amount must be > 0");
 
-        uint256 cost = sets * SHARE_PRICE;
-        
+        // Transfer USDC from buyer
         require(
-            collateralToken.transferFrom(msg.sender, address(this), cost),
+            collateralToken.transferFrom(msg.sender, address(this), usdcAmount),
             "USDC transfer failed"
         );
 
-        uint256 shares = sets * SHARES_PER_SET;
+        // Apply fee
+        uint256 fee = (usdcAmount * FEE_BPS) / BPS_DENOMINATOR;
+        uint256 amountAfterFee = usdcAmount - fee;
+
+        // Calculate shares out using constant product formula
+        // When buying YES: we're adding to NO reserve (USDC backs NO side)
+        // Formula: sharesOut = yesReserves - (k / (noReserves + amountNormalized))
+        uint256 amountNormalized = (amountAfterFee * SHARES_DECIMALS) / USDC_DECIMALS;
+        uint256 k = yesReserves[marketId] * noReserves[marketId];
         
-        // Mint both YES and NO shares
-        shareToken.mint(msg.sender, market.yesTokenId, shares);
-        shareToken.mint(msg.sender, market.noTokenId, shares);
+        uint256 newNoReserve = noReserves[marketId] + amountNormalized;
+        uint256 newYesReserve = k / newNoReserve;
+        
+        sharesOut = yesReserves[marketId] - newYesReserve;
+        require(sharesOut > 0, "Insufficient output");
 
-        market.totalYesShares += shares;
-        market.totalNoShares += shares;
+        // Update reserves
+        yesReserves[marketId] = newYesReserve;
+        noReserves[marketId] = newNoReserve;
 
-        emit SharesBought(marketId, msg.sender, true, shares, cost);
-        emit SharesBought(marketId, msg.sender, false, shares, cost);
+        // Mint YES shares to buyer
+        shareToken.mint(msg.sender, market.yesTokenId, sharesOut);
+
+        emit SharesBought(
+            marketId,
+            msg.sender,
+            true,
+            sharesOut,
+            usdcAmount,
+            getYesPrice(marketId)
+        );
     }
 
     /**
-     * @notice Sell a complete set of shares (1 YES + 1 NO = $1)
-     * @param marketId Market to sell shares in
-     * @param sets Number of share sets to sell
+     * @notice Buy NO shares using USDC
+     * @param marketId Market to buy from
+     * @param usdcAmount Amount of USDC to spend
+     * @return sharesOut Amount of NO shares received
      */
-    function sellShares(uint256 marketId, uint256 sets) external nonReentrant {
+    function buyNo(uint256 marketId, uint256 usdcAmount) external nonReentrant returns (uint256 sharesOut) {
         Market storage market = markets[marketId];
         require(market.status == ResolutionStatus.PENDING, "Market not active");
-        require(sets > 0, "Must sell at least 1 set");
+        require(block.timestamp < market.endTime, "Market expired");
+        require(usdcAmount > 0, "Amount must be > 0");
 
-        uint256 shares = sets * SHARES_PER_SET;
+        // Transfer USDC from buyer
+        require(
+            collateralToken.transferFrom(msg.sender, address(this), usdcAmount),
+            "USDC transfer failed"
+        );
+
+        // Apply fee
+        uint256 fee = (usdcAmount * FEE_BPS) / BPS_DENOMINATOR;
+        uint256 amountAfterFee = usdcAmount - fee;
+
+        // Calculate shares out using constant product formula
+        // When buying NO: we're adding to YES reserve
+        uint256 amountNormalized = (amountAfterFee * SHARES_DECIMALS) / USDC_DECIMALS;
+        uint256 k = yesReserves[marketId] * noReserves[marketId];
         
-        // Check user has both YES and NO shares
+        uint256 newYesReserve = yesReserves[marketId] + amountNormalized;
+        uint256 newNoReserve = k / newYesReserve;
+        
+        sharesOut = noReserves[marketId] - newNoReserve;
+        require(sharesOut > 0, "Insufficient output");
+
+        // Update reserves
+        yesReserves[marketId] = newYesReserve;
+        noReserves[marketId] = newNoReserve;
+
+        // Mint NO shares to buyer
+        shareToken.mint(msg.sender, market.noTokenId, sharesOut);
+
+        emit SharesSold(
+            marketId,
+            msg.sender,
+            false,
+            sharesOut,
+            usdcAmount,
+            getNoPrice(marketId)
+        );
+    }
+
+    /**
+     * @notice Sell YES shares for USDC
+     * @param marketId Market to sell to
+     * @param shares Amount of YES shares to sell
+     * @return usdcOut Amount of USDC received
+     */
+    function sellYes(uint256 marketId, uint256 shares) external nonReentrant returns (uint256 usdcOut) {
+        Market storage market = markets[marketId];
+        require(market.status == ResolutionStatus.PENDING, "Market not active");
+        require(shares > 0, "Amount must be > 0");
+
+        // Check user has enough shares
         require(
             shareToken.balanceOf(msg.sender, market.yesTokenId) >= shares,
             "Insufficient YES shares"
         );
+
+        // Calculate USDC out using constant product formula
+        // When selling YES: we're adding YES back to reserve, getting NO out (as USDC value)
+        uint256 k = yesReserves[marketId] * noReserves[marketId];
+        
+        uint256 newYesReserve = yesReserves[marketId] + shares;
+        uint256 newNoReserve = k / newYesReserve;
+        
+        uint256 noOut = noReserves[marketId] - newNoReserve;
+        usdcOut = (noOut * USDC_DECIMALS) / SHARES_DECIMALS;
+
+        // Apply fee
+        uint256 fee = (usdcOut * FEE_BPS) / BPS_DENOMINATOR;
+        usdcOut = usdcOut - fee;
+
+        require(usdcOut > 0, "Insufficient output");
+
+        // Update reserves
+        yesReserves[marketId] = newYesReserve;
+        noReserves[marketId] = newNoReserve;
+
+        // Burn shares from seller
+        shareToken.burn(msg.sender, market.yesTokenId, shares);
+
+        // Transfer USDC to seller
+        require(collateralToken.transfer(msg.sender, usdcOut), "USDC transfer failed");
+
+        emit SharesSold(
+            marketId,
+            msg.sender,
+            true,
+            shares,
+            usdcOut,
+            getYesPrice(marketId)
+        );
+    }
+
+    /**
+     * @notice Sell NO shares for USDC
+     * @param marketId Market to sell to
+     * @param shares Amount of NO shares to sell
+     * @return usdcOut Amount of USDC received
+     */
+    function sellNo(uint256 marketId, uint256 shares) external nonReentrant returns (uint256 usdcOut) {
+        Market storage market = markets[marketId];
+        require(market.status == ResolutionStatus.PENDING, "Market not active");
+        require(shares > 0, "Amount must be > 0");
+
+        // Check user has enough shares
         require(
             shareToken.balanceOf(msg.sender, market.noTokenId) >= shares,
             "Insufficient NO shares"
         );
 
-        // Burn both YES and NO shares
-        shareToken.burn(msg.sender, market.yesTokenId, shares);
+        // Calculate USDC out
+        uint256 k = yesReserves[marketId] * noReserves[marketId];
+        
+        uint256 newNoReserve = noReserves[marketId] + shares;
+        uint256 newYesReserve = k / newNoReserve;
+        
+        uint256 yesOut = yesReserves[marketId] - newYesReserve;
+        usdcOut = (yesOut * USDC_DECIMALS) / SHARES_DECIMALS;
+
+        // Apply fee
+        uint256 fee = (usdcOut * FEE_BPS) / BPS_DENOMINATOR;
+        usdcOut = usdcOut - fee;
+
+        require(usdcOut > 0, "Insufficient output");
+
+        // Update reserves
+        yesReserves[marketId] = newYesReserve;
+        noReserves[marketId] = newNoReserve;
+
+        // Burn shares from seller
         shareToken.burn(msg.sender, market.noTokenId, shares);
 
-        market.totalYesShares -= shares;
-        market.totalNoShares -= shares;
+        // Transfer USDC to seller
+        require(collateralToken.transfer(msg.sender, usdcOut), "USDC transfer failed");
 
-        uint256 payout = sets * SHARE_PRICE;
-        require(
-            collateralToken.transfer(msg.sender, payout),
-            "USDC transfer failed"
+        emit SharesSold(
+            marketId,
+            msg.sender,
+            false,
+            shares,
+            usdcOut,
+            getNoPrice(marketId)
         );
-
-        emit SharesSold(marketId, msg.sender, true, shares, payout);
     }
+
+    // ============ RESOLUTION ============
 
     /**
      * @notice Resolve a market (owner only)
@@ -271,7 +423,7 @@ contract MarketFactory is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Redeem winning shares for $1 each
+     * @notice Redeem winning shares for USDC
      * @param marketId Market to redeem from
      * @param shares Number of shares to redeem
      */
@@ -289,7 +441,7 @@ contract MarketFactory is Ownable, ReentrancyGuard {
                 "Insufficient YES shares"
             );
             shareToken.burn(msg.sender, market.yesTokenId, shares);
-            payout = (shares * SHARE_PRICE) / SHARES_PER_SET;
+            payout = (shares * USDC_DECIMALS) / SHARES_DECIMALS;  // $1 per share
             
         } else if (market.status == ResolutionStatus.RESOLVED_NO) {
             // NO wins - redeem NO shares for $1 each
@@ -298,7 +450,7 @@ contract MarketFactory is Ownable, ReentrancyGuard {
                 "Insufficient NO shares"
             );
             shareToken.burn(msg.sender, market.noTokenId, shares);
-            payout = (shares * SHARE_PRICE) / SHARES_PER_SET;
+            payout = (shares * USDC_DECIMALS) / SHARES_DECIMALS;  // $1 per share
             
         } else if (market.status == ResolutionStatus.RESOLVED_INVALID) {
             // Invalid - both YES and NO redeem for $0.50 each
@@ -313,7 +465,7 @@ contract MarketFactory is Ownable, ReentrancyGuard {
                 revert("Insufficient shares");
             }
             
-            payout = (shares * SHARE_PRICE) / (2 * SHARES_PER_SET); // $0.50 per share
+            payout = (shares * USDC_DECIMALS) / (2 * SHARES_DECIMALS);  // $0.50 per share
         }
 
         require(collateralToken.transfer(msg.sender, payout), "Payout failed");
@@ -321,12 +473,38 @@ contract MarketFactory is Ownable, ReentrancyGuard {
         emit SharesRedeemed(marketId, msg.sender, shares, payout);
     }
 
-    // View functions
+    // ============ VIEW FUNCTIONS ============
     
+    /**
+     * @notice Get current YES price (0-1e18 representing 0-100%)
+     */
+    function getYesPrice(uint256 marketId) public view returns (uint256) {
+        uint256 yes = yesReserves[marketId];
+        uint256 no = noReserves[marketId];
+        if (yes + no == 0) return 5e17; // 50% default
+        return (no * 1e18) / (yes + no);
+    }
+
+    /**
+     * @notice Get current NO price (0-1e18 representing 0-100%)
+     */
+    function getNoPrice(uint256 marketId) public view returns (uint256) {
+        uint256 yes = yesReserves[marketId];
+        uint256 no = noReserves[marketId];
+        if (yes + no == 0) return 5e17; // 50% default
+        return (yes * 1e18) / (yes + no);
+    }
+
+    /**
+     * @notice Get market details
+     */
     function getMarket(uint256 marketId) external view returns (Market memory) {
         return markets[marketId];
     }
 
+    /**
+     * @notice Check if market exists for tweet + metric combo
+     */
     function getMarketByTweetAndMetric(
         string memory tweetId, 
         MetricType metric
@@ -336,7 +514,47 @@ contract MarketFactory is Ownable, ReentrancyGuard {
         marketId = marketByHash[marketHash];
     }
 
+    /**
+     * @notice Get total market count
+     */
     function getMarketCount() external view returns (uint256) {
         return nextMarketId;
+    }
+
+    /**
+     * @notice Get AMM reserves for a market
+     */
+    function getReserves(uint256 marketId) external view returns (uint256 yesRes, uint256 noRes) {
+        return (yesReserves[marketId], noReserves[marketId]);
+    }
+
+    /**
+     * @notice Estimate shares out for a buy order (before executing)
+     */
+    function estimateBuyYes(uint256 marketId, uint256 usdcAmount) external view returns (uint256 sharesOut) {
+        uint256 fee = (usdcAmount * FEE_BPS) / BPS_DENOMINATOR;
+        uint256 amountAfterFee = usdcAmount - fee;
+        uint256 amountNormalized = (amountAfterFee * SHARES_DECIMALS) / USDC_DECIMALS;
+        
+        uint256 k = yesReserves[marketId] * noReserves[marketId];
+        uint256 newNoReserve = noReserves[marketId] + amountNormalized;
+        uint256 newYesReserve = k / newNoReserve;
+        
+        return yesReserves[marketId] - newYesReserve;
+    }
+
+    /**
+     * @notice Estimate shares out for a NO buy order
+     */
+    function estimateBuyNo(uint256 marketId, uint256 usdcAmount) external view returns (uint256 sharesOut) {
+        uint256 fee = (usdcAmount * FEE_BPS) / BPS_DENOMINATOR;
+        uint256 amountAfterFee = usdcAmount - fee;
+        uint256 amountNormalized = (amountAfterFee * SHARES_DECIMALS) / USDC_DECIMALS;
+        
+        uint256 k = yesReserves[marketId] * noReserves[marketId];
+        uint256 newYesReserve = yesReserves[marketId] + amountNormalized;
+        uint256 newNoReserve = k / newYesReserve;
+        
+        return noReserves[marketId] - newNoReserve;
     }
 }

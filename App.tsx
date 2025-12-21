@@ -4,7 +4,7 @@ import { Market, ViewState, MarketCategory } from './types';
 import { MarketCard } from './components/MarketCard';
 import { MarketDetail } from './components/MarketDetail';
 import { BrutalistButton } from './components/BrutalistButton';
-import { CreateMarketModal } from './components/CreateMarketModal';
+import { ConnectedCreateMarketModal } from './components/ConnectedCreateMarketModal';
 import { BangrLogo } from './components/BangrLogo';
 import { GlobalPulse } from './components/GlobalPulse';
 import { useWallet } from './lib/useWallet';
@@ -218,10 +218,13 @@ export default function App() {
         />
       )}
 
-      <CreateMarketModal
+      <ConnectedCreateMarketModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onCreateMarket={handleCreateMarket}
+        onSuccess={() => {
+          setIsCreateModalOpen(false);
+          // TODO: Refetch markets from contract
+        }}
       />
     </div>
   );

@@ -9,295 +9,177 @@
 | Phase | Focus | Estimated Time | Status |
 |-------|-------|----------------|--------|
 | Phase 1 | Migration & Setup | 1 hour | ✅ Complete |
-| Phase 2 | Contract Simplification | 2-3 hours | ✅ Complete |
-| Phase 3 | Deploy to Testnet | 1 hour | ⬜ Not Started |
-| Phase 4 | Frontend Integration | 3-4 hours | ⬜ Not Started |
+| Phase 2 | Contract Simplification | 2-3 hours | ✅ Complete (with AMM!) |
+| Phase 3 | Deploy to Testnet | 1 hour | ✅ Complete |
+| Phase 4 | Frontend Integration | 3-4 hours | 🔄 In Progress |
 | Phase 5 | Testing & Polish | 2 hours | ⬜ Not Started |
 
 **Total Estimated Time: 9-11 hours (1.5-2 days)**
 
 ---
 
-## Phase 1: Migration & Setup
+## Phase 1: Migration & Setup ✅ COMPLETE
 
 ### Goal
 Copy necessary infrastructure from bangrsh to bangerph.
 
-### Tasks
-
-- [ ] **1.1** Create `/contracts` folder in bangerph
-- [ ] **1.2** Copy Hardhat config and dependencies
-  ```
-  FROM: bangrsh/bangr/contracts/
-  TO:   bangerph/contracts/
-  
-  Files:
-  - hardhat.config.ts
-  - package.json
-  - tsconfig.json
-  ```
-- [ ] **1.3** Copy smart contracts
-  ```
-  Files:
-  - MarketFactory.sol (will simplify in Phase 2)
-  - ShareToken.sol
-  - MockUSDC.sol
-  ```
-- [ ] **1.4** Copy wallet/provider setup
-  ```
-  FROM: bangrsh/bangr/lib/wagmi.ts
-  FROM: bangrsh/bangr/contexts/WalletContext.tsx
-  TO:   bangerph/lib/
-  ```
-- [ ] **1.5** Install dependencies
-  ```bash
-  cd bangerph/contracts
-  npm install
-  ```
-- [ ] **1.6** Verify Hardhat compiles
-  ```bash
-  npx hardhat compile
-  ```
-
-### Deliverable
-✅ Contracts compile successfully in bangerph
+### Completed Tasks
+- [x] Created `/contracts` folder in bangerph
+- [x] Copied Hardhat config and dependencies
+- [x] Copied smart contracts (MarketFactory.sol, ShareToken.sol, MockUSDC.sol)
+- [x] Installed dependencies
+- [x] Verified Hardhat compiles
 
 ---
 
-## Phase 2: Contract Simplification
+## Phase 2: Contract Simplification ✅ COMPLETE (with AMM!)
 
 ### Goal
-Simplify MarketFactory.sol to match our new model (one market per metric, max 4 per tweet).
+Simplify MarketFactory.sol and add AMM pricing for real prediction market trading.
 
-### Tasks
+### Completed Tasks
+- [x] Removed complex features (Duration enum, multipliers)
+- [x] Updated market uniqueness to (tweetId + metric) only
+- [x] Simplified createMarket function
+- [x] **Added full AMM (Automated Market Maker)**:
+  - `buyYes()` / `buyNo()` - Buy individual shares
+  - `sellYes()` / `sellNo()` - Sell shares back
+  - `getYesPrice()` / `getNoPrice()` - Dynamic pricing
+  - `estimateBuyYes()` / `estimateBuyNo()` - Preview trades
+  - Constant product formula (like Uniswap)
+  - 1% trading fee
 
-- [ ] **2.1** Remove complex features from MarketFactory.sol:
-  - [ ] Remove `Duration` enum (fixed 24h only)
-  - [ ] Remove `multiplier` options (scout sets target directly)
-  - [ ] Simplify fee distribution
-
-- [ ] **2.2** Update market uniqueness check:
-  ```solidity
-  // OLD: Hash includes duration + multiplier (32 markets possible)
-  bytes32 marketHash = keccak256(abi.encode(tweetId, metric, duration, multiplier));
-  
-  // NEW: Hash is just tweetId + metric (4 markets max)
-  bytes32 marketHash = keccak256(abi.encode(tweetId, metric));
-  ```
-
-- [ ] **2.3** Simplify createMarket function:
-  ```solidity
-  function createMarket(
-      string memory tweetUrl,
-      string memory tweetId,
-      string memory authorHandle,
-      MetricType metric,
-      uint256 currentValue,
-      uint256 targetValue  // Scout sets target directly
-  ) external returns (uint256 marketId);
-  ```
-
-- [ ] **2.4** Update Market struct:
-  ```solidity
-  struct Market {
-      uint256 id;
-      string tweetUrl;
-      string tweetId;
-      string authorHandle;
-      address scout;
-      MetricType metric;
-      uint256 currentValue;
-      uint256 targetValue;
-      uint256 startTime;
-      uint256 endTime;        // startTime + 24 hours
-      ResolutionStatus status;
-      uint256 yesTokenId;
-      uint256 noTokenId;
-  }
-  ```
-
-- [ ] **2.5** Add simple buy/sell functions (no order book):
-  ```solidity
-  function buyYes(uint256 marketId, uint256 amount) external;
-  function buyNo(uint256 marketId, uint256 amount) external;
-  function sell(uint256 marketId, bool isYes, uint256 shares) external;
-  ```
-
-- [ ] **2.6** Add redemption function:
-  ```solidity
-  function redeem(uint256 marketId, uint256 shares) external;
-  ```
-
-- [ ] **2.7** Write unit tests for simplified contract
-
-### Deliverable
-✅ Simplified MarketFactory.sol compiles and passes tests
+### Contract Features
+- ✅ Max 4 markets per tweet (one per metric)
+- ✅ Fixed 24h duration
+- ✅ Scout sets target directly
+- ✅ Dynamic AMM pricing (50/50 start, moves with trades)
+- ✅ 1% trading fee
+- ✅ Resolution by owner (manual for MVP)
 
 ---
 
-## Phase 3: Deploy to Testnet
+## Phase 3: Deploy to Testnet ✅ COMPLETE
 
 ### Goal
-Deploy contracts to BNB Testnet with test USDC.
+Deploy contracts to BNB Testnet
 
-### Tasks
+### Deployed Contracts (BSC Testnet - December 20, 2024)
 
-- [ ] **3.1** Get BNB testnet tokens
-  ```
-  Faucet: https://testnet.bnbchain.org/faucet-smart
-  ```
+| Contract | Address | BscScan |
+|----------|---------|---------|
+| MockUSDC | `0xb0edAB53b28B4A13B396e66e6892ad553429A49f` | [View](https://testnet.bscscan.com/address/0xb0edAB53b28B4A13B396e66e6892ad553429A49f) |
+| ShareToken | `0x56591846d568350705F6238089dA36f8F459A553` | [View](https://testnet.bscscan.com/address/0x56591846d568350705F6238089dA36f8F459A553) |
+| MarketFactory | `0xC1F10B760AAD6949f264122749E80b42C76b6b4F` | [View](https://testnet.bscscan.com/address/0xC1F10B760AAD6949f264122749E80b42C76b6b4F) |
 
-- [ ] **3.2** Deploy MockUSDC (testnet USDC)
-  ```bash
-  npx hardhat run scripts/deploy-usdc.ts --network bscTestnet
-  ```
+**Deployer/Owner:** `0x7308b1B0Ab147713ADc079c7183be84a933Ee1D1`
 
-- [ ] **3.3** Deploy ShareToken
-  ```bash
-  npx hardhat run scripts/deploy-sharetoken.ts --network bscTestnet
-  ```
-
-- [ ] **3.4** Deploy MarketFactory
-  ```bash
-  npx hardhat run scripts/deploy-factory.ts --network bscTestnet
-  ```
-
-- [ ] **3.5** Verify contracts on BscScan
-  ```bash
-  npx hardhat verify --network bscTestnet <ADDRESS>
-  ```
-
-- [ ] **3.6** Save contract addresses to config file
-  ```typescript
-  // lib/contracts/addresses.ts
-  export const ADDRESSES = {
-    USDC: "0x...",
-    ShareToken: "0x...",
-    MarketFactory: "0x...",
-  };
-  ```
-
-### Deliverable
-✅ Contracts deployed and verified on BNB Testnet
+### Completed Tasks
+- [x] Funded deployer wallet with 0.1 tBNB
+- [x] Deployed MockUSDC
+- [x] Deployed ShareToken
+- [x] Deployed MarketFactory (with AMM)
+- [x] Configured ShareToken with MarketFactory address
+- [x] Saved addresses to `contracts/deployed-addresses.json`
 
 ---
 
-## Phase 4: Frontend Integration
+## Phase 4: Frontend Integration 🔄 IN PROGRESS
 
 ### Goal
 Wire the existing UI to the deployed contracts.
 
-### Tasks
+### Completed Tasks
+- [x] Created `lib/contracts/addresses.ts` - Contract addresses
+- [x] Created `lib/contracts/abis.ts` - Contract ABIs
+- [x] Created `lib/contracts/hooks.ts` - React hooks for all contract functions
+- [x] Created `lib/contracts/index.ts` - Clean exports
+- [x] Created `components/ConnectedTradePanel.tsx` - Trading UI with real contract calls
+- [x] Created `components/ConnectedCreateMarketModal.tsx` - Market creation with contract integration
+- [x] Created `services/twitterService.ts` - TwitterAPI.io integration for live tweet metrics
+- [x] Wired ConnectedCreateMarketModal into App.tsx
+- [x] Wired ConnectedTradePanel into MarketDetail.tsx
 
-#### 4.1 Wallet Connection
-- [ ] Install Privy SDK
-  ```bash
-  npm install @privy-io/react-auth @privy-io/wagmi wagmi viem
-  ```
-- [ ] Set up PrivyProvider in app
-- [ ] Add wallet connect button functionality
-- [ ] Test wallet connection on BNB Testnet
+### Available Hooks
 
-#### 4.2 Contract Hooks
-- [ ] Create `useMarketFactory` hook
-  ```typescript
-  // Read functions
-  const { data: market } = useReadMarket(marketId);
-  const { data: markets } = useReadAllMarkets();
-  
-  // Write functions
-  const { write: createMarket } = useCreateMarket();
-  const { write: buyYes } = useBuyYes();
-  const { write: buyNo } = useBuyNo();
-  ```
+**Read Hooks:**
+- `useMarketCount()` - Get total markets
+- `useMarket(id)` - Get market details
+- `useYesPrice(id)` - Get YES price (cents)
+- `useNoPrice(id)` - Get NO price (cents)
+- `useReserves(id)` - Get AMM reserves
+- `useEstimateBuyYes(id, amount)` - Preview YES buy
+- `useEstimateBuyNo(id, amount)` - Preview NO buy
+- `useUsdcBalance(address)` - User's USDC balance
+- `useYesBalance(address, marketId)` - User's YES shares
+- `useNoBalance(address, marketId)` - User's NO shares
 
-- [ ] Create `useUserPositions` hook
-  ```typescript
-  const { data: positions } = useUserPositions(address);
-  ```
+**Write Hooks:**
+- `useApproveUsdc()` - Approve USDC spending
+- `useMintUsdc()` - Mint test USDC (testnet)
+- `useCreateMarket()` - Create new market
+- `useBuyYes()` - Buy YES shares
+- `useBuyNo()` - Buy NO shares
+- `useSellYes()` - Sell YES shares
+- `useSellNo()` - Sell NO shares
+- `useRedeem()` - Redeem winning shares
 
-#### 4.3 Connect UI Components
-- [ ] **CreateMarketModal** → calls `createMarket()`
-- [ ] **TradePanel** → calls `buyYes()` / `buyNo()`
-- [ ] **MarketCard** → reads market data from contract
-- [ ] **Portfolio** (if adding) → shows user positions
-
-#### 4.4 Transaction Handling
-- [ ] Add loading states during transactions
+### Remaining Tasks
+- [ ] Wire CreateMarketModal to `useCreateMarket()`
+- [ ] Wire TradePanel to `useBuyYes()` / `useBuyNo()`
+- [ ] Wire MarketCard to read live prices
+- [ ] Add USDC minting for testers
+- [ ] Add transaction loading states
 - [ ] Add success/error toasts
-- [ ] Handle transaction confirmations
-
-### Deliverable
-✅ Users can create markets and trade via the UI
+- [ ] Deploy frontend to Vercel/Cloudflare
 
 ---
 
-## Phase 5: Testing & Polish
+## Phase 5: Testing & Polish ⬜ NOT STARTED
 
 ### Goal
 Test full flow end-to-end and fix issues.
 
 ### Tasks
-
-- [ ] **5.1** Test market creation flow
-  - Paste tweet URL
-  - Select metric
-  - Set target
-  - Pay $10 USDC
-  - Market appears in list
-
-- [ ] **5.2** Test trading flow
-  - Click market
-  - Buy YES/NO shares
-  - See position in portfolio
-
-- [ ] **5.3** Test resolution (manual for now)
-  - Owner calls resolveMarket()
-  - Winners can redeem
-
-- [ ] **5.4** Fix any bugs found
-
-- [ ] **5.5** Add real tweet fetching (optional)
-  - Apify integration for metrics
-  - Or: use mock data for demo
-
-- [ ] **5.6** Record demo video
-
-### Deliverable
-✅ Working prototype ready for demo
-
----
-
-## Contract Addresses (Fill After Deploy)
-
-| Contract | Testnet Address | Mainnet Address |
-|----------|-----------------|-----------------|
-| MockUSDC | `0x...` | - |
-| ShareToken | `0x...` | - |
-| MarketFactory | `0x...` | - |
+- [ ] Test market creation flow
+- [ ] Test trading flow (buy/sell YES/NO)
+- [ ] Test resolution (owner resolves manually)
+- [ ] Test redemption (winners claim)
+- [ ] Fix any bugs
+- [ ] Add real tweet fetching (optional - TwitterAPI.io)
+- [ ] Record demo video for hackathon
 
 ---
 
 ## Environment Variables
 
 ```bash
-# .env.local
-NEXT_PUBLIC_ACTIVE_CHAIN_ID=97  # BNB Testnet
-PRIVATE_KEY=your_deployer_key
-BSCSCAN_API_KEY=your_bscscan_key
-PRIVY_APP_ID=your_privy_app_id
+# .env.local (Frontend)
+VITE_PRIVY_APP_ID=your_privy_app_id
+
+# contracts/.env (Contracts)
+PRIVATE_KEY=your_deployer_private_key
+BSCSCAN_API_KEY=your_bscscan_key  # Optional for verification
 ```
 
 ---
 
-## Dependencies to Install
+## Quick Start Commands
 
 ```bash
-# Frontend (bangerph)
-npm install @privy-io/react-auth @privy-io/wagmi wagmi viem
+# Frontend development
+cd bangerph
+npm run dev
 
-# Contracts (bangerph/contracts)
-npm install hardhat @nomicfoundation/hardhat-toolbox @openzeppelin/contracts dotenv
+# Compile contracts
+cd contracts
+npx hardhat compile
+
+# Deploy to testnet (already done)
+npx hardhat run scripts/step3-deploy.js --network bscTestnet
+
+# Mint test USDC (via UI or script)
+# Use the useMintUsdc() hook in frontend
 ```
 
 ---
@@ -307,9 +189,10 @@ npm install hardhat @nomicfoundation/hardhat-toolbox @openzeppelin/contracts dot
 - **BNB Testnet Faucet:** https://testnet.bnbchain.org/faucet-smart
 - **BscScan Testnet:** https://testnet.bscscan.com/
 - **Privy Dashboard:** https://dashboard.privy.io/
-- **Original Contracts:** `bangrsh/bangr/contracts/`
+- **Contract Source:** `bangerph/contracts/contracts/`
+- **Deployed Addresses:** `bangerph/contracts/deployed-addresses.json`
 
 ---
 
-*Last updated: 2024-12-19*
-*Status: Ready to start Phase 1*
+*Last updated: 2024-12-20*
+*Status: Contracts deployed ✅, frontend integration in progress*

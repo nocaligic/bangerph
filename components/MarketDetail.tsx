@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Market, MetricType } from '../types';
 import { BrutalistButton } from './BrutalistButton';
 import { TradePanel } from './TradePanel';
+import { ConnectedTradePanel } from './ConnectedTradePanel';
 import { TweetDisplay } from './TweetDisplay';
 import { analyzeVirality } from '../services/geminiService';
 import { BrainCircuit, Users, Activity, Copy, Twitter, Eye, Repeat, Heart, MessageCircle, Clock } from 'lucide-react';
@@ -216,12 +217,22 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({ market, onBack }) =>
         <div className="lg:col-span-4 space-y-6">
           <div className="sticky top-24 space-y-6">
 
-            {/* PASSING THE SPECIFIC METRIC DATA TO TRADE PANEL */}
-            <TradePanel
-              market={market}
-              metricType={selectedMetric}
-              metricData={activeMetricData}
-            />
+            {/* 
+              If this is a contract market (numeric ID), use ConnectedTradePanel
+              Otherwise fall back to mock TradePanel for demo markets
+            */}
+            {!isNaN(Number(market.id)) ? (
+              <ConnectedTradePanel
+                marketId={Number(market.id)}
+                metricType={selectedMetric}
+              />
+            ) : (
+              <TradePanel
+                market={market}
+                metricType={selectedMetric}
+                metricData={activeMetricData}
+              />
+            )}
 
             {/* Share Section */}
             <div className="bg-white border-4 border-black shadow-hard p-4">

@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "/Users/jamesfears/Desktop/bangrph/bangerph/contracts/contracts/MarketFactory.sol": {
-      "lastModificationDate": 1766173915625,
-      "contentHash": "50f9f02e1cc6818d5f77d2c8290a342f",
+      "lastModificationDate": 1766257384810,
+      "contentHash": "6e05773ce9ceabadf492dc24963c500c",
       "sourceName": "contracts/MarketFactory.sol",
       "solcConfig": {
         "version": "0.8.20",
