@@ -23,7 +23,7 @@ export function Providers({ children }: ProvidersProps) {
             config={{
                 appearance: {
                     theme: 'dark',
-                    accentColor: '#ccff00', // banger-yellow
+                    accentColor: '#ecfd00', // banger-yellow (character color)
                 },
                 supportedChains: [bscTestnet],
                 defaultChain: bscTestnet,

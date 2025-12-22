@@ -1,32 +1,24 @@
 /**
- * React hooks for Bangr contract interactions
+ * React hooks for Bangr V2 contract interactions
  * Uses wagmi for read/write operations
  */
 
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
-import { parseUnits, formatUnits } from 'viem';
+import { useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
+import { parseUnits, formatUnits, parseAbiItem } from 'viem';
+import { useState, useEffect } from 'react';
 import { CONTRACTS } from './addresses';
 import { MARKET_FACTORY_ABI, MOCK_USDC_ABI, SHARE_TOKEN_ABI } from './abis';
 
 const contracts = CONTRACTS.bscTestnet;
 
-// ============ TYPES ============
+// Contract deployment block - used for efficient event fetching
+// BSC Testnet RPC limits getLogs to ~5000 blocks, so we start from deployment
+const CONTRACT_DEPLOYMENT_BLOCK = BigInt(80023861);
 
-export interface Market {
-    id: bigint;
-    tweetUrl: string;
-    tweetId: string;
-    authorHandle: string;
-    scout: string;
-    metric: number;
-    currentValue: bigint;
-    targetValue: bigint;
-    startTime: bigint;
-    endTime: bigint;
-    status: number;
-    yesTokenId: bigint;
-    noTokenId: bigint;
-}
+// Indexer API URL (local dev or deployed)
+const INDEXER_API_URL = 'http://localhost:8788';
+
+// ============ TYPES ============
 
 export enum MetricType {
     VIEWS = 0,
@@ -35,11 +27,10 @@ export enum MetricType {
     COMMENTS = 3,
 }
 
-export enum ResolutionStatus {
-    PENDING = 0,
+export enum MarketStatus {
+    ACTIVE = 0,
     RESOLVED_YES = 1,
     RESOLVED_NO = 2,
-    RESOLVED_INVALID = 3,
 }
 
 // ============ READ HOOKS ============
@@ -49,9 +40,9 @@ export enum ResolutionStatus {
  */
 export function useMarketCount() {
     return useReadContract({
-        address: contracts.marketFactory,
+        address: contracts.marketFactory as `0x${string}`,
         abi: MARKET_FACTORY_ABI,
-        functionName: 'getMarketCount',
+        functionName: 'marketCount',
     });
 }
 
@@ -60,7 +51,7 @@ export function useMarketCount() {
  */
 export function useMarket(marketId: number | bigint) {
     return useReadContract({
-        address: contracts.marketFactory,
+        address: contracts.marketFactory as `0x${string}`,
         abi: MARKET_FACTORY_ABI,
         functionName: 'getMarket',
         args: [BigInt(marketId)],
@@ -68,52 +59,52 @@ export function useMarket(marketId: number | bigint) {
 }
 
 /**
- * Get current YES price (0-1e18 = 0-100%)
+ * Get current YES price (0-100 representing cents)
  */
 export function useYesPrice(marketId: number | bigint) {
     const result = useReadContract({
-        address: contracts.marketFactory,
+        address: contracts.marketFactory as `0x${string}`,
         abi: MARKET_FACTORY_ABI,
         functionName: 'getYesPrice',
         args: [BigInt(marketId)],
     });
 
-    // Convert to percentage (0-100)
-    const pricePercent = result.data ? Number(result.data) / 1e16 : 50;
+    // V2 contract returns 0-100 directly
+    const pricePercent = result.data ? Number(result.data) : 50;
 
     return {
         ...result,
         pricePercent,
-        priceCents: Math.round(pricePercent),
+        priceCents: pricePercent,
     };
 }
 
 /**
- * Get current NO price (0-1e18 = 0-100%)
+ * Get current NO price (0-100 representing cents)
  */
 export function useNoPrice(marketId: number | bigint) {
     const result = useReadContract({
-        address: contracts.marketFactory,
+        address: contracts.marketFactory as `0x${string}`,
         abi: MARKET_FACTORY_ABI,
         functionName: 'getNoPrice',
         args: [BigInt(marketId)],
     });
 
-    const pricePercent = result.data ? Number(result.data) / 1e16 : 50;
+    const pricePercent = result.data ? Number(result.data) : 50;
 
     return {
         ...result,
         pricePercent,
-        priceCents: Math.round(pricePercent),
+        priceCents: pricePercent,
     };
 }
 
 /**
- * Get AMM reserves for a market
+ * Get reserves for a market
  */
 export function useReserves(marketId: number | bigint) {
     return useReadContract({
-        address: contracts.marketFactory,
+        address: contracts.marketFactory as `0x${string}`,
         abi: MARKET_FACTORY_ABI,
         functionName: 'getReserves',
         args: [BigInt(marketId)],
@@ -121,37 +112,284 @@ export function useReserves(marketId: number | bigint) {
 }
 
 /**
- * Estimate shares out for buying YES
+ * Estimate YES shares for a given USDC amount
+ * V2: Calculate client-side since contract doesn't have this view function
  */
 export function useEstimateBuyYes(marketId: number | bigint, usdcAmount: string) {
-    const amountWei = parseUnits(usdcAmount || '0', 6);
+    const { data: reserves } = useReserves(marketId);
 
+    // Simple estimate: shares = (amount * noReserve) / (yesReserve + noReserve)
+    const amount = Number(usdcAmount || '0') * 1e6;
+    let estimatedShares = BigInt(0);
+
+    if (reserves) {
+        const [yesRes, noRes] = reserves as [bigint, bigint];
+        if (yesRes + noRes > 0) {
+            estimatedShares = BigInt(Math.floor((amount * Number(noRes)) / (Number(yesRes) + Number(noRes))));
+        }
+    }
+
+    return { data: estimatedShares, isLoading: !reserves };
+}
+
+/**
+ * Estimate NO shares for a given USDC amount
+ */
+export function useEstimateBuyNo(marketId: number | bigint, usdcAmount: string) {
+    const { data: reserves } = useReserves(marketId);
+
+    const amount = Number(usdcAmount || '0') * 1e6;
+    let estimatedShares = BigInt(0);
+
+    if (reserves) {
+        const [yesRes, noRes] = reserves as [bigint, bigint];
+        if (yesRes + noRes > 0) {
+            estimatedShares = BigInt(Math.floor((amount * Number(yesRes)) / (Number(yesRes) + Number(noRes))));
+        }
+    }
+
+    return { data: estimatedShares, isLoading: !reserves };
+}
+
+/**
+ * Get user's YES token balance for a market
+ */
+export function useYesBalance(marketId: number | bigint, userAddress?: string) {
+    const position = useUserPosition(marketId, userAddress as `0x${string}`);
+
+    return {
+        data: position.data ? (position.data as any)[0] : BigInt(0),
+        isLoading: position.isLoading,
+    };
+}
+
+/**
+ * Get user's NO token balance for a market
+ */
+export function useNoBalance(marketId: number | bigint, userAddress?: string) {
+    const position = useUserPosition(marketId, userAddress as `0x${string}`);
+
+    return {
+        data: position.data ? (position.data as any)[1] : BigInt(0),
+        isLoading: position.isLoading,
+    };
+}
+
+/**
+ * Check if market already exists for tweet+metric
+ */
+export function useMarketExists(tweetId: string, metric: MetricType) {
     return useReadContract({
-        address: contracts.marketFactory,
+        address: contracts.marketFactory as `0x${string}`,
         abi: MARKET_FACTORY_ABI,
-        functionName: 'estimateBuyYes',
-        args: [BigInt(marketId), amountWei],
+        functionName: 'marketExistsFor',
+        args: [tweetId, metric],
+    });
+}
+
+/**
+ * Get user's position in a market
+ */
+export function useUserPosition(marketId: number | bigint, userAddress?: `0x${string}`) {
+    return useReadContract({
+        address: contracts.marketFactory as `0x${string}`,
+        abi: MARKET_FACTORY_ABI,
+        functionName: 'getUserPosition',
+        args: userAddress ? [BigInt(marketId), userAddress] : undefined,
         query: {
-            enabled: Number(usdcAmount) > 0,
+            enabled: !!userAddress,
         },
     });
 }
 
 /**
- * Estimate shares out for buying NO
+ * Get user's positions across all markets (for portfolio page)
+ * Uses multicall to efficiently fetch all positions in one RPC call
  */
-export function useEstimateBuyNo(marketId: number | bigint, usdcAmount: string) {
-    const amountWei = parseUnits(usdcAmount || '0', 6);
+export interface UserPosition {
+    marketId: number;
+    yesShares: bigint;
+    noShares: bigint;
+}
 
-    return useReadContract({
-        address: contracts.marketFactory,
-        abi: MARKET_FACTORY_ABI,
-        functionName: 'estimateBuyNo',
-        args: [BigInt(marketId), amountWei],
+export function useAllUserPositions(marketIds: number[], userAddress?: `0x${string}`) {
+    const { data: positionsData, isLoading, refetch } = useReadContracts({
+        contracts: marketIds.map(id => ({
+            address: contracts.marketFactory as `0x${string}`,
+            abi: MARKET_FACTORY_ABI,
+            functionName: 'getUserPosition',
+            args: [BigInt(id), userAddress],
+        })),
         query: {
-            enabled: Number(usdcAmount) > 0,
+            enabled: !!userAddress && marketIds.length > 0,
         },
     });
+
+    // Parse results into positions with non-zero balances
+    const positions: UserPosition[] = [];
+
+    if (positionsData) {
+        for (let i = 0; i < marketIds.length; i++) {
+            const result = positionsData[i];
+            if (result?.status === 'success' && result.result) {
+                const [yesShares, noShares] = result.result as unknown as [bigint, bigint];
+                // Only include if user has some position
+                if (yesShares > BigInt(0) || noShares > BigInt(0)) {
+                    positions.push({
+                        marketId: marketIds[i],
+                        yesShares,
+                        noShares,
+                    });
+                }
+            }
+        }
+    }
+
+    return {
+        positions,
+        isLoading,
+        refetch,
+    };
+}
+
+/**
+ * Trade event for history display
+ */
+export interface TradeEvent {
+    marketId: number;
+    isYes: boolean;
+    usdcAmount: bigint;
+    sharesReceived: bigint;
+    timestamp: number;
+    transactionHash: string;
+    blockNumber: bigint;
+}
+
+/**
+ * Fetch user's trade history from the indexer API (fast, cached)
+ */
+export function useUserTradeHistory(userAddress?: `0x${string}`) {
+    const [trades, setTrades] = useState<TradeEvent[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<Error | null>(null);
+
+    const fetchTrades = async () => {
+        if (!userAddress) {
+            setTrades([]);
+            setIsLoading(false);
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await fetch(`${INDEXER_API_URL}/trades/${userAddress}`);
+            const data = await response.json();
+
+            if (data.success && data.trades) {
+                // Map API response to TradeEvent interface
+                const parsedTrades: TradeEvent[] = data.trades.map((t: any) => ({
+                    marketId: t.marketId,
+                    isYes: t.isYes === 1,
+                    usdcAmount: BigInt(t.usdcAmount || '0'),
+                    sharesReceived: BigInt(t.sharesReceived || '0'),
+                    timestamp: 0,
+                    transactionHash: t.transactionHash || '',
+                    blockNumber: BigInt(t.blockNumber || 0),
+                }));
+                setTrades(parsedTrades);
+            } else {
+                setTrades([]);
+            }
+        } catch (err) {
+            console.error('Error fetching trade history from indexer:', err);
+            setError(err as Error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchTrades();
+    }, [userAddress]);
+
+    return {
+        trades,
+        isLoading,
+        error,
+        refetch: fetchTrades,
+    };
+}
+
+/**
+ * Market created event for displaying user's created markets
+ */
+export interface CreatedMarketEvent {
+    marketId: number;
+    tweetId: string;
+    metric: number;
+    targetValue: bigint;
+    category: string;
+    transactionHash: string;
+    blockNumber: bigint;
+}
+
+/**
+ * Fetch markets created by the user from the indexer API (fast, cached)
+ */
+export function useUserCreatedMarkets(userAddress?: `0x${string}`) {
+    const [markets, setMarkets] = useState<CreatedMarketEvent[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<Error | null>(null);
+
+    const fetchMarkets = async () => {
+        if (!userAddress) {
+            setMarkets([]);
+            setIsLoading(false);
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await fetch(`${INDEXER_API_URL}/markets/${userAddress}`);
+            const data = await response.json();
+
+            if (data.success && data.markets) {
+                // Map API response to CreatedMarketEvent interface
+                const parsedMarkets: CreatedMarketEvent[] = data.markets.map((m: any) => ({
+                    marketId: m.marketId,
+                    tweetId: m.tweetId || '',
+                    metric: m.metric,
+                    targetValue: BigInt(m.targetValue || '0'),
+                    category: m.category || '',
+                    transactionHash: m.transactionHash || '',
+                    blockNumber: BigInt(m.blockNumber || 0),
+                }));
+                setMarkets(parsedMarkets);
+            } else {
+                setMarkets([]);
+            }
+        } catch (err) {
+            console.error('Error fetching created markets from indexer:', err);
+            setError(err as Error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchMarkets();
+    }, [userAddress]);
+
+    return {
+        markets,
+        isLoading,
+        error,
+        refetch: fetchMarkets,
+    };
 }
 
 /**
@@ -159,7 +397,7 @@ export function useEstimateBuyNo(marketId: number | bigint, usdcAmount: string) 
  */
 export function useUsdcBalance(address?: string) {
     return useReadContract({
-        address: contracts.mockUSDC,
+        address: contracts.mockUSDC as `0x${string}`,
         abi: MOCK_USDC_ABI,
         functionName: 'balanceOf',
         args: address ? [address as `0x${string}`] : undefined,
@@ -170,50 +408,16 @@ export function useUsdcBalance(address?: string) {
 }
 
 /**
- * Get user's USDC allowance for MarketFactory
+ * Get USDC allowance for MarketFactory
  */
-export function useUsdcAllowance(owner?: string) {
+export function useUsdcAllowance(address?: string) {
     return useReadContract({
-        address: contracts.mockUSDC,
+        address: contracts.mockUSDC as `0x${string}`,
         abi: MOCK_USDC_ABI,
         functionName: 'allowance',
-        args: owner ? [owner as `0x${string}`, contracts.marketFactory] : undefined,
+        args: address ? [address as `0x${string}`, contracts.marketFactory as `0x${string}`] : undefined,
         query: {
-            enabled: !!owner,
-        },
-    });
-}
-
-/**
- * Get user's YES share balance for a market
- */
-export function useYesBalance(address?: string, marketId?: number | bigint) {
-    const yesTokenId = marketId !== undefined ? BigInt(marketId) * 2n : 0n;
-
-    return useReadContract({
-        address: contracts.shareToken,
-        abi: SHARE_TOKEN_ABI,
-        functionName: 'balanceOf',
-        args: address ? [address as `0x${string}`, yesTokenId] : undefined,
-        query: {
-            enabled: !!address && marketId !== undefined,
-        },
-    });
-}
-
-/**
- * Get user's NO share balance for a market
- */
-export function useNoBalance(address?: string, marketId?: number | bigint) {
-    const noTokenId = marketId !== undefined ? BigInt(marketId) * 2n + 1n : 0n;
-
-    return useReadContract({
-        address: contracts.shareToken,
-        abi: SHARE_TOKEN_ABI,
-        functionName: 'balanceOf',
-        args: address ? [address as `0x${string}`, noTokenId] : undefined,
-        query: {
-            enabled: !!address && marketId !== undefined,
+            enabled: !!address,
         },
     });
 }
@@ -221,7 +425,7 @@ export function useNoBalance(address?: string, marketId?: number | bigint) {
 // ============ WRITE HOOKS ============
 
 /**
- * Approve USDC spending for MarketFactory
+ * Approve USDC for MarketFactory
  */
 export function useApproveUsdc() {
     const { writeContractAsync, data: hash, isPending, error } = useWriteContract();
@@ -230,10 +434,10 @@ export function useApproveUsdc() {
     const approve = async (amount: string) => {
         const amountWei = parseUnits(amount, 6);
         return writeContractAsync({
-            address: contracts.mockUSDC,
+            address: contracts.mockUSDC as `0x${string}`,
             abi: MOCK_USDC_ABI,
             functionName: 'approve',
-            args: [contracts.marketFactory, amountWei],
+            args: [contracts.marketFactory as `0x${string}`, amountWei],
         });
     };
 
@@ -241,21 +445,19 @@ export function useApproveUsdc() {
 }
 
 /**
- * Mint test USDC (testnet only)
+ * Mint test USDC (for testnet only)
  */
 export function useMintUsdc() {
-    const { address } = useAccount();
     const { writeContractAsync, data: hash, isPending, error } = useWriteContract();
     const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
     const mint = async (amount: string) => {
-        if (!address) return;
         const amountWei = parseUnits(amount, 6);
         return writeContractAsync({
-            address: contracts.mockUSDC,
+            address: contracts.mockUSDC as `0x${string}`,
             abi: MOCK_USDC_ABI,
             functionName: 'mint',
-            args: [address, amountWei],
+            args: [await (window as any).ethereum?.selectedAddress, amountWei],
         });
     };
 
@@ -263,31 +465,54 @@ export function useMintUsdc() {
 }
 
 /**
- * Create a new market
+ * Create a new market (V2 - with full tweet data)
  */
 export function useCreateMarket() {
     const { writeContractAsync, data: hash, isPending, error } = useWriteContract();
     const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
     const createMarket = async (params: {
-        tweetUrl: string;
+        // Tweet data
         tweetId: string;
+        tweetUrl: string;
+        tweetText: string;
         authorHandle: string;
+        authorName: string;
+        avatarUrl: string;
+        mediaJson: string;
+        // Quote tweet (optional)
+        hasQuotedTweet: boolean;
+        quotedTweetId: string;
+        quotedTweetText: string;
+        quotedAuthorHandle: string;
+        quotedAuthorName: string;
+        // Market config
+        category: string;
         metric: MetricType;
-        currentValue: number;
         targetValue: number;
+        duration?: number; // Default 24 hours
     }) => {
         return writeContractAsync({
-            address: contracts.marketFactory,
+            address: contracts.marketFactory as `0x${string}`,
             abi: MARKET_FACTORY_ABI,
             functionName: 'createMarket',
             args: [
-                params.tweetUrl,
                 params.tweetId,
+                params.tweetUrl,
+                params.tweetText,
                 params.authorHandle,
+                params.authorName,
+                params.avatarUrl,
+                params.mediaJson,
+                params.hasQuotedTweet,
+                params.quotedTweetId,
+                params.quotedTweetText,
+                params.quotedAuthorHandle,
+                params.quotedAuthorName,
+                params.category,
                 params.metric,
-                BigInt(params.currentValue),
                 BigInt(params.targetValue),
+                BigInt(params.duration || 86400), // Default 24 hours
             ],
         });
     };
@@ -305,7 +530,7 @@ export function useBuyYes() {
     const buyYes = async (marketId: number | bigint, usdcAmount: string) => {
         const amountWei = parseUnits(usdcAmount, 6);
         return writeContractAsync({
-            address: contracts.marketFactory,
+            address: contracts.marketFactory as `0x${string}`,
             abi: MARKET_FACTORY_ABI,
             functionName: 'buyYes',
             args: [BigInt(marketId), amountWei],
@@ -325,7 +550,7 @@ export function useBuyNo() {
     const buyNo = async (marketId: number | bigint, usdcAmount: string) => {
         const amountWei = parseUnits(usdcAmount, 6);
         return writeContractAsync({
-            address: contracts.marketFactory,
+            address: contracts.marketFactory as `0x${string}`,
             abi: MARKET_FACTORY_ABI,
             functionName: 'buyNo',
             args: [BigInt(marketId), amountWei],
@@ -343,9 +568,9 @@ export function useSellYes() {
     const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
     const sellYes = async (marketId: number | bigint, shares: string) => {
-        const sharesWei = parseUnits(shares, 18);
+        const sharesWei = parseUnits(shares, 6); // USDC decimals for V2
         return writeContractAsync({
-            address: contracts.marketFactory,
+            address: contracts.marketFactory as `0x${string}`,
             abi: MARKET_FACTORY_ABI,
             functionName: 'sellYes',
             args: [BigInt(marketId), sharesWei],
@@ -363,9 +588,9 @@ export function useSellNo() {
     const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
     const sellNo = async (marketId: number | bigint, shares: string) => {
-        const sharesWei = parseUnits(shares, 18);
+        const sharesWei = parseUnits(shares, 6); // USDC decimals for V2
         return writeContractAsync({
-            address: contracts.marketFactory,
+            address: contracts.marketFactory as `0x${string}`,
             abi: MARKET_FACTORY_ABI,
             functionName: 'sellNo',
             args: [BigInt(marketId), sharesWei],
@@ -376,23 +601,22 @@ export function useSellNo() {
 }
 
 /**
- * Redeem winning shares after resolution
+ * Claim winnings after market resolution
  */
-export function useRedeem() {
+export function useClaimWinnings() {
     const { writeContractAsync, data: hash, isPending, error } = useWriteContract();
     const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
-    const redeem = async (marketId: number | bigint, shares: string) => {
-        const sharesWei = parseUnits(shares, 18);
+    const claimWinnings = async (marketId: number | bigint) => {
         return writeContractAsync({
-            address: contracts.marketFactory,
+            address: contracts.marketFactory as `0x${string}`,
             abi: MARKET_FACTORY_ABI,
-            functionName: 'redeem',
-            args: [BigInt(marketId), sharesWei],
+            functionName: 'claimWinnings',
+            args: [BigInt(marketId)],
         });
     };
 
-    return { redeem, isPending, isConfirming, isSuccess, error, hash };
+    return { claimWinnings, isPending, isConfirming, isSuccess, error, hash };
 }
 
 // ============ UTILITY FUNCTIONS ============
@@ -401,53 +625,19 @@ export function useRedeem() {
  * Format shares from wei to readable number
  */
 export function formatShares(shares: bigint): string {
-    return formatUnits(shares, 18);
+    return formatUnits(shares, 6);
 }
 
 /**
- * Format USDC from wei to readable number
+ * Format USDC from wei to readable string
  */
 export function formatUsdc(amount: bigint): string {
     return formatUnits(amount, 6);
 }
 
 /**
- * Parse USDC to wei
+ * Parse USDC string to wei
  */
 export function parseUsdc(amount: string): bigint {
     return parseUnits(amount, 6);
-}
-
-/**
- * Get metric label
- */
-export function getMetricLabel(metric: number): string {
-    const labels = ['VIEWS', 'LIKES', 'RETWEETS', 'COMMENTS'];
-    return labels[metric] || 'UNKNOWN';
-}
-
-/**
- * Get resolution status label
- */
-export function getStatusLabel(status: number): string {
-    const labels = ['PENDING', 'YES WINS', 'NO WINS', 'INVALID'];
-    return labels[status] || 'UNKNOWN';
-}
-
-/**
- * Calculate time remaining
- */
-export function getTimeRemaining(endTime: bigint): string {
-    const now = BigInt(Math.floor(Date.now() / 1000));
-    const remaining = endTime - now;
-
-    if (remaining <= 0n) return 'Ended';
-
-    const hours = Number(remaining / 3600n);
-    const minutes = Number((remaining % 3600n) / 60n);
-
-    if (hours > 24) {
-        return `${Math.floor(hours / 24)}d ${hours % 24}h`;
-    }
-    return `${hours}h ${minutes}m`;
 }

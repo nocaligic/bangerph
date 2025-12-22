@@ -1,0 +1,19 @@
+name = "bangr-indexer"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "bangr-events"
+database_id = "local"  # Will be replaced with actual ID after creation
+
+# Environment variables
+[vars]
+BSC_RPC_URL = "https://lb.drpc.org/ogrpc?network=bsc-testnet&dkey=AgfgxJZqcELtk0eZLo8rbT0Mne3F34sR8JGIhhdoDp16"
+MARKET_FACTORY = "0x9cc98DE92B173e24be98543ffabcd5B28b528F60"
+DEPLOYMENT_BLOCK = "80023861"
+
+# Scheduled triggers - runs every 5 minutes to conserve RPC calls
+[triggers]
+crons = ["*/5 * * * *"]  # Every 5 minutes (reduces RPC usage by 80%)

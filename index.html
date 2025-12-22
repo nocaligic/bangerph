@@ -20,7 +20,7 @@
           colors: {
             'banger-black': '#121212',
             'banger-white': '#ffffff',
-            'banger-yellow': '#ccff00',
+            'banger-yellow': '#ecfd00',
             'banger-pink': '#ff00ff',
             'banger-cyan': '#00ffff',
             'banger-purple': '#9d4edd',
@@ -58,7 +58,7 @@
     }
 
     ::-webkit-scrollbar-thumb {
-      background: #ccff00;
+      background: #ecfd00;
       border: 4px solid black;
     }
 
@@ -102,6 +102,56 @@
       background-image:
         linear-gradient(to right, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
         linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+    }
+
+    /* Confetti Animation */
+    .confetti-piece {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: var(--color);
+      top: -20px;
+      left: var(--x);
+      transform: rotate(var(--rotation));
+      animation: confetti-fall var(--duration) ease-out var(--delay) forwards;
+    }
+
+    @keyframes confetti-fall {
+      0% {
+        top: -5%;
+        opacity: 1;
+        transform: rotate(0deg) scale(1);
+      }
+
+      100% {
+        top: 100%;
+        opacity: 0;
+        transform: rotate(720deg) scale(0.5);
+      }
+    }
+
+    @keyframes bounce-in {
+      0% {
+        transform: scale(0);
+        opacity: 0;
+      }
+
+      50% {
+        transform: scale(1.2);
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .animate-bounce-in {
+      animation: bounce-in 0.5s ease-out forwards;
+    }
+
+    .animate-confetti-fall {
+      animation: confetti-fall 2s ease-out forwards;
     }
   </style>
   <script type="importmap">

@@ -1,14 +1,20 @@
 // Contract addresses deployed to BSC Testnet
-// Deployed: 2025-12-20
+// Deployed: 2025-12-22 - V2
 
 export const CONTRACTS = {
     bscTestnet: {
         chainId: 97,
-        mockUSDC: '0xb0edAB53b28B4A13B396e66e6892ad553429A49f' as const,
-        shareToken: '0x56591846d568350705F6238089dA36f8F459A553' as const,
-        marketFactory: '0xC1F10B760AAD6949f264122749E80b42C76b6b4F' as const,
+        mockUSDC: '0xf71A99BD244a1f73Aa07A2ccaA315ADB9D41CaCf' as const,
+        shareToken: '0x331042bf992BcD11521DfC88bB7b17f2B83f9336' as const,
+        marketFactory: '0x9cc98DE92B173e24be98543ffabcd5B28b528F60' as const,
     }
 } as const;
+
+// Short aliases for quick access
+export const MARKET_FACTORY = CONTRACTS.bscTestnet.marketFactory;
+export const MOCK_USDC = CONTRACTS.bscTestnet.mockUSDC;
+export const SHARE_TOKEN = CONTRACTS.bscTestnet.shareToken;
+export const CHAIN_ID = 97;
 
 // Get current network contracts
 export function getContracts(chainId: number = 97) {

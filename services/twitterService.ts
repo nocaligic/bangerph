@@ -1,16 +1,19 @@
 /**
  * Twitter API Service
- * Fetches tweet data from TwitterAPI.io
+ * Fetches tweet data via Cloudflare Worker proxy
  * 
- * In production, this should be called via a serverless function to protect the API key
- * For testnet demo, we're using the key directly (it's a test key)
+ * The worker proxies requests to TwitterAPI.io to avoid CORS issues
+ * and keeps the API key secure on the server side.
  */
 
-const TWITTER_API_KEY = (import.meta as any).env?.VITE_TWITTER_API_KEY || 'new1_76b20b877cdd4fcba5323e4d9f2030dd';
-const TWITTER_API_BASE = 'https://api.twitterapi.io';
+// Use local worker in development, deployed worker in production
+const TWITTER_PROXY_URL = (import.meta as any).env?.PROD
+    ? 'https://twitter-proxy.YOUR_SUBDOMAIN.workers.dev'  // TODO: Update after deployment
+    : 'http://localhost:8787';
 
 // Simple in-memory cache
 const cache = new Map<string, { data: TweetData; timestamp: number }>();
+const pendingRequests = new Map<string, Promise<TweetData>>(); // Deduplicate in-flight requests
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export interface TweetData {
@@ -74,103 +77,110 @@ export async function fetchTweetData(tweetId: string): Promise<TweetData> {
         return cached.data;
     }
 
-    console.log(`[TwitterAPI] Fetching metrics for tweet ${tweetId}`);
+    // Check if request is already in flight
+    if (pendingRequests.has(tweetId)) {
+        console.log(`[TwitterAPI] Joining in-flight request for tweet ${tweetId}`);
+        return pendingRequests.get(tweetId)!;
+    }
 
-    try {
-        const response = await fetch(
-            `${TWITTER_API_BASE}/twitter/tweets?tweet_ids=${tweetId}`,
-            {
-                method: 'GET',
-                headers: {
-                    'x-api-key': TWITTER_API_KEY,
-                    'Content-Type': 'application/json',
-                },
+    console.log(`[TwitterAPI] Fetching metrics for tweet ${tweetId} via Worker proxy`);
+
+    const promise = (async () => {
+        try {
+            const response = await fetch(
+                `${TWITTER_PROXY_URL}/tweet/${tweetId}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: response.statusText }));
+                console.error(`[TwitterAPI] Error: ${response.status}`, errorData);
+
+                // If rate limited, return fallback data
+                if (response.status === 429) {
+                    throw new Error('Rate limit exceeded. Please try again in a few minutes.');
+                }
+
+                throw new Error(errorData.error || `Failed to fetch tweet: ${response.statusText}`);
             }
-        );
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`[TwitterAPI] Error: ${response.status} - ${errorText}`);
+            const data = await response.json();
+            console.log(`[TwitterAPI] Worker response:`, data);
 
-            // If rate limited, return fallback data
-            if (response.status === 429) {
-                throw new Error('Rate limit exceeded. Please try again in a few minutes.');
+            if (!data.success || !data.tweets || data.tweets.length === 0) {
+                throw new Error('Tweet not found');
             }
 
-            throw new Error(`Failed to fetch tweet: ${response.statusText}`);
-        }
+            // Worker returns pre-formatted data
+            const tweet = data.tweets[0];
+            const author = tweet.author || {};
+            const metrics = tweet.metrics || {};
 
-        const data = await response.json();
-        console.log(`[TwitterAPI] Raw response:`, data);
+            // Extract metrics from worker response format
+            const views = metrics.views ?? 0;
+            const likes = metrics.likes ?? 0;
+            const retweets = metrics.retweets ?? 0;
+            const replies = metrics.replies ?? 0;
+            const quotes = metrics.quotes ?? 0;
+            const bookmarks = metrics.bookmarks ?? 0;
 
-        const tweets = data.tweets || [];
-        if (tweets.length === 0) {
-            throw new Error('Tweet not found');
-        }
+            // Author profile picture
+            const avatarUrl = author.profilePicture || null;
 
-        const tweet = tweets[0];
-        const author = tweet.author || tweet.user || {};
+            // Extract media from entities
+            const mediaEntities = tweet.media || [];
+            const imageUrl = mediaEntities.length > 0 && mediaEntities[0].type === 'IMAGE'
+                ? mediaEntities[0].url
+                : null;
 
-        // Extract metrics
-        const publicMetrics = tweet.public_metrics || tweet.publicMetrics || tweet.metrics || {};
-
-        const views = tweet.viewCount ?? tweet.impressionCount ?? publicMetrics.impression_count ?? 0;
-        const likes = tweet.likeCount ?? publicMetrics.like_count ?? 0;
-        const retweets = tweet.retweetCount ?? publicMetrics.retweet_count ?? 0;
-        const replies = tweet.replyCount ?? publicMetrics.reply_count ?? 0;
-        const quotes = tweet.quoteCount ?? publicMetrics.quote_count ?? 0;
-        const bookmarks = tweet.bookmarkCount ?? publicMetrics.bookmark_count ?? 0;
-
-        const avatarUrl = author.profilePicture || author.profileImageUrl || author.profile_image_url || author.avatar || null;
-
-        // Extract media
-        const extendedMedia = tweet.extendedEntities?.media || tweet.entities?.media || tweet.media || [];
-        const imageUrl = extendedMedia.length > 0 && extendedMedia[0].type === 'photo'
-            ? extendedMedia[0].media_url_https || extendedMedia[0].url || extendedMedia[0].media_url
-            : null;
-
-        // Extract quote tweet
-        let quotedTweet = null;
-        if (tweet.quotedTweet || tweet.quoted_tweet || tweet.is_quote_status) {
-            const quoted = tweet.quotedTweet || tweet.quoted_tweet || {};
-            const quotedAuthor = quoted.author || quoted.user || {};
-
-            if (quoted.text || quoted.full_text) {
+            // Extract quote tweet
+            let quotedTweet = null;
+            if (tweet.quotedTweet) {
                 quotedTweet = {
-                    tweetId: quoted.id || '',
-                    text: quoted.text || quoted.full_text || '',
-                    authorHandle: quotedAuthor.username || quotedAuthor.userName || 'unknown',
-                    authorName: quotedAuthor.name || 'Unknown',
-                    avatarUrl: quotedAuthor.profilePicture || quotedAuthor.profileImageUrl || quotedAuthor.profile_image_url || null,
+                    tweetId: tweet.quotedTweet.id,
+                    text: tweet.quotedTweet.text,
+                    authorHandle: tweet.quotedTweet.author?.userName || 'unknown',
+                    authorName: tweet.quotedTweet.author?.name || 'Unknown',
+                    avatarUrl: null, // Basic info for now
                 };
             }
+
+            const tweetData: TweetData = {
+                tweetId,
+                text: tweet.text || '',
+                authorHandle: author.userName || 'unknown',
+                authorName: author.name || 'Unknown',
+                avatarUrl,
+                imageUrl,
+                quotedTweet,
+                views,
+                likes,
+                retweets,
+                replies,
+                quotes,
+                bookmarks,
+            };
+
+            // Cache the result
+            cache.set(tweetId, { data: tweetData, timestamp: Date.now() });
+
+            return tweetData;
+        } finally {
+            // Remove from pending requests when done (success or failure)
+            pendingRequests.delete(tweetId);
         }
+    })();
 
-        const tweetData: TweetData = {
-            tweetId: tweet.id || tweetId,
-            text: tweet.text || '',
-            authorHandle: author.username || author.userName || 'unknown',
-            authorName: author.name || 'Unknown',
-            avatarUrl,
-            imageUrl,
-            quotedTweet,
-            views,
-            likes,
-            retweets,
-            replies,
-            quotes,
-            bookmarks,
-        };
-
-        // Cache the result
-        cache.set(tweetId, { data: tweetData, timestamp: Date.now() });
-
-        return tweetData;
-    } catch (error: any) {
-        console.error('[TwitterAPI] Error:', error);
-        throw error;
-    }
+    pendingRequests.set(tweetId, promise);
+    return promise;
 }
+
+
 
 /**
  * Fetch tweet data from URL
