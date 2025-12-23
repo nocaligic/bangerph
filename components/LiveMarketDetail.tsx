@@ -90,6 +90,14 @@ export const LiveMarketDetail: React.FC<LiveMarketDetailProps> = ({ marketId, on
         imageUrl: market.media.length > 0 && market.media[0].type === 'image'
             ? market.media[0].url
             : undefined,
+        // Include quoted tweet from on-chain data
+        quotedTweet: quotedTweet ? {
+            authorName: quotedTweet.authorName,
+            authorHandle: quotedTweet.authorHandle,
+            avatarUrl: '', // Not stored on-chain
+            content: quotedTweet.text,
+            timestamp: '',
+        } : undefined,
     };
 
     return (
