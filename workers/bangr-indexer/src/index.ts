@@ -89,15 +89,30 @@ export default {
                 return await getCreatedMarkets(env, address);
             }
 
+            // Get trades for a specific market (for chart data)
+            if (path.startsWith('/market-trades/')) {
+                const marketIdStr = path.split('/market-trades/')[1];
+                const marketId = parseInt(marketIdStr);
+                if (isNaN(marketId)) {
+                    return jsonResponse({ error: 'Valid market ID required' }, 400);
+                }
+                return await getMarketTrades(env, marketId);
+            }
+
             // Trigger manual indexing (for testing)
             if (path === '/index') {
                 const result = await indexEvents(env);
                 return jsonResponse(result);
             }
 
+            // Get global activity (all trades + market creations)
+            if (path === '/global-activity') {
+                return await getGlobalActivity(env);
+            }
+
             return jsonResponse({
                 error: 'Not found',
-                endpoints: ['/trades/:address', '/markets/:address', '/stats', '/health']
+                endpoints: ['/trades/:address', '/markets/:address', '/market-trades/:marketId', '/global-activity', '/stats', '/health']
             }, 404);
 
         } catch (error) {
@@ -188,6 +203,131 @@ async function getStats(env: Env): Promise<Response> {
             totalTrades: (tradesCount as any)?.count || 0,
             totalMarkets: (marketsCount as any)?.count || 0,
         }
+    });
+}
+
+async function getMarketTrades(env: Env, marketId: number): Promise<Response> {
+    const { results } = await env.DB.prepare(`
+        SELECT 
+            market_id as marketId,
+            buyer,
+            is_yes as isYes,
+            usdc_amount as usdcAmount,
+            shares_received as sharesReceived,
+            tx_hash as transactionHash,
+            block_number as blockNumber,
+            indexed_at as indexedAt
+        FROM trades 
+        WHERE market_id = ?
+        ORDER BY block_number ASC
+        LIMIT 200
+    `).bind(marketId).all();
+
+    // Calculate price points for chart (YES price as percentage)
+    // After each trade, calculate cumulative YES/NO ratio
+    let yesVolume = 0;
+    let noVolume = 0;
+    const priceHistory: { blockNumber: number; yesPrice: number; noPrice: number; isYes: boolean; amount: string; buyer: string }[] = [];
+
+    for (const trade of (results || [])) {
+        const amount = parseFloat((trade as any).usdcAmount) / 1e6; // Convert from wei to USDC
+        if ((trade as any).isYes) {
+            yesVolume += amount;
+        } else {
+            noVolume += amount;
+        }
+        const totalVolume = yesVolume + noVolume;
+        const yesPrice = totalVolume > 0 ? Math.round((yesVolume / totalVolume) * 100) : 50;
+        const noPrice = 100 - yesPrice;
+
+        priceHistory.push({
+            blockNumber: (trade as any).blockNumber,
+            yesPrice,
+            noPrice,
+            isYes: !!(trade as any).isYes,
+            amount: amount.toFixed(2),
+            buyer: (trade as any).buyer,
+        });
+    }
+
+    return jsonResponse({
+        success: true,
+        marketId,
+        count: results?.length || 0,
+        trades: results || [],
+        priceHistory,
+        currentYesPrice: priceHistory.length > 0 ? priceHistory[priceHistory.length - 1].yesPrice : 50,
+        currentNoPrice: priceHistory.length > 0 ? priceHistory[priceHistory.length - 1].noPrice : 50,
+    });
+}
+
+/**
+ * Get global activity - all trades and market creations combined
+ */
+async function getGlobalActivity(env: Env): Promise<Response> {
+    // Get recent trades with market metric info
+    const { results: trades } = await env.DB.prepare(`
+        SELECT 
+            t.market_id as marketId,
+            t.buyer,
+            t.is_yes as isYes,
+            t.usdc_amount as usdcAmount,
+            t.tx_hash as transactionHash,
+            t.block_number as blockNumber,
+            t.indexed_at as indexedAt,
+            m.metric as metric,
+            'TRADE' as activityType
+        FROM trades t
+        LEFT JOIN created_markets m ON t.market_id = m.market_id
+        ORDER BY t.block_number DESC
+        LIMIT 50
+    `).all();
+
+    // Get recent market creations
+    const { results: markets } = await env.DB.prepare(`
+        SELECT 
+            market_id as marketId,
+            creator,
+            metric,
+            target_value as targetValue,
+            tx_hash as transactionHash,
+            block_number as blockNumber,
+            indexed_at as indexedAt,
+            'CREATE' as activityType
+        FROM created_markets
+        ORDER BY block_number DESC
+        LIMIT 20
+    `).all();
+
+    // Combine and sort by block number
+    const allActivity = [
+        ...(trades || []).map((t: any) => ({
+            type: 'TRADE',
+            marketId: t.marketId,
+            user: t.buyer,
+            isYes: !!t.isYes,
+            amount: (parseFloat(t.usdcAmount) / 1e6).toFixed(0),
+            metric: t.metric,
+            txHash: t.transactionHash,
+            blockNumber: t.blockNumber,
+            timestamp: t.indexedAt,
+        })),
+        ...(markets || []).map((m: any) => ({
+            type: 'CREATE',
+            marketId: m.marketId,
+            user: m.creator,
+            metric: m.metric,
+            targetValue: m.targetValue,
+            txHash: m.transactionHash,
+            blockNumber: m.blockNumber,
+            timestamp: m.indexedAt,
+        })),
+    ].sort((a, b) => b.blockNumber - a.blockNumber).slice(0, 50);
+
+    return jsonResponse({
+        success: true,
+        count: allActivity.length,
+        activity: allActivity,
     });
 }
 

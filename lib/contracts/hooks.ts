@@ -160,6 +160,7 @@ export function useYesBalance(marketId: number | bigint, userAddress?: string) {
     return {
         data: position.data ? (position.data as any)[0] : BigInt(0),
         isLoading: position.isLoading,
+        refetch: position.refetch,
     };
 }
 
@@ -172,6 +173,7 @@ export function useNoBalance(marketId: number | bigint, userAddress?: string) {
     return {
         data: position.data ? (position.data as any)[1] : BigInt(0),
         isLoading: position.isLoading,
+        refetch: position.refetch,
     };
 }
 

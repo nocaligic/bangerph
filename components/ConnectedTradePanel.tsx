@@ -49,8 +49,8 @@ export const ConnectedTradePanel: React.FC<ConnectedTradePanelProps> = ({
     const { priceCents: noPrice } = useNoPrice(marketId);
     const { data: usdcBalance } = useUsdcBalance(address);
     const { data: allowance } = useUsdcAllowance(address);
-    const { data: yesBalance } = useYesBalance(marketId, address);
-    const { data: noBalance } = useNoBalance(marketId, address);
+    const { data: yesBalance, refetch: refetchYesBalance } = useYesBalance(marketId, address);
+    const { data: noBalance, refetch: refetchNoBalance } = useNoBalance(marketId, address);
 
     // Estimate shares
     const { data: estimatedYesShares } = useEstimateBuyYes(marketId, amount);
@@ -88,13 +88,16 @@ export const ConnectedTradePanel: React.FC<ConnectedTradePanelProps> = ({
         if (buyYesSuccess || buyNoSuccess) {
             setIsSuccess(true);
             setShowConfetti(true); // Trigger confetti!
+            // Refetch position balances
+            refetchYesBalance();
+            refetchNoBalance();
             setTimeout(() => {
                 setIsSuccess(false);
                 setShowConfetti(false);
                 onSuccess?.();
             }, 2500);
         }
-    }, [buyYesSuccess, buyNoSuccess, onSuccess]);
+    }, [buyYesSuccess, buyNoSuccess, onSuccess, refetchYesBalance, refetchNoBalance]);
 
     const handleTrade = async () => {
         setError(null);
