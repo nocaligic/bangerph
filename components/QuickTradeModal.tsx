@@ -17,6 +17,8 @@ import {
 } from '../lib/contracts/hooks';
 import { BrutalistButton } from './BrutalistButton';
 import { ConfettiSimple } from './Confetti';
+import { useDegenMode } from '../contexts/DegenContext';
+import { Sparkles, Trophy, Zap } from 'lucide-react';
 
 interface QuickTradeModalProps {
     isOpen: boolean;
@@ -37,6 +39,7 @@ export const QuickTradeModal: React.FC<QuickTradeModalProps> = ({
     metricName = 'VIEWS',
     targetValue = '1M'
 }) => {
+    const { degenMode } = useDegenMode();
     const { isConnected, address } = useAccount();
     const [side, setSide] = useState<'YES' | 'NO'>(initialSide);
     const [amount, setAmount] = useState('10');
@@ -124,31 +127,38 @@ export const QuickTradeModal: React.FC<QuickTradeModalProps> = ({
                 {showConfetti ? (
                     /* Full success "Screen" replacing the modal box */
                     <div
-                        className="bg-banger-yellow border-4 border-black p-12 shadow-hard text-center animate-in zoom-in duration-300 pattern-lines flex flex-col items-center justify-center"
+                        className={`border-4 border-black p-12 shadow-hard text-center animate-in zoom-in duration-300 pattern-lines flex flex-col items-center justify-center relative overflow-hidden ${degenMode ? 'bg-[#ff00ff]' : 'bg-banger-yellow'}`}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="bg-white border-4 border-black p-10 shadow-hard transform -rotate-1">
-                            <div className="font-display text-5xl mb-2 text-black">ORDER FILLED</div>
+                        {degenMode && (
+                            <>
+                                <div className="absolute top-2 right-4 animate-bounce text-[#ecfd00]"><Trophy size={48} /></div>
+                                <div className="absolute bottom-4 left-4 animate-pulse text-[#00ffff]"><Sparkles size={32} /></div>
+                            </>
+                        )}
+                        <div className={`bg-white border-4 border-black p-10 shadow-hard transform -rotate-1 relative z-10 ${degenMode ? 'text-black' : ''}`}>
+                            <div className="font-display text-5xl mb-2">ORDER FILLED</div>
                             <div className="font-mono text-2xl">TO THE MOON 🚀</div>
                         </div>
                     </div>
                 ) : (
                     <div
-                        className="bg-banger-black border-4 border-black shadow-hard max-w-sm w-full relative animate-in zoom-in-95 duration-300"
+                        className={`border-4 border-black shadow-hard max-w-sm w-full relative animate-in zoom-in-95 duration-300 ${degenMode ? 'bg-[#2d1b54]' : 'bg-banger-black'}`}
                         onClick={(e) => e.stopPropagation()}
                     >
+                        {degenMode && <div className="scanline opacity-20"></div>}
 
                         {/* Header */}
-                        <div className="flex justify-between items-center p-4 border-b-2 border-gray-700">
+                        <div className={`flex justify-between items-center p-4 border-b-2 transition-colors ${degenMode ? 'bg-[#ff00ff] border-black' : 'bg-transparent border-gray-700'}`}>
                             <div className="flex items-center gap-2">
-                                <h2 className="font-display text-xl text-white uppercase">Quick Trade</h2>
-                                <span className="bg-banger-pink text-white font-mono text-[10px] px-2 py-0.5 border border-white uppercase">
+                                <h2 className={`font-display text-xl uppercase ${degenMode ? 'text-black' : 'text-white'}`}>Quick Trade</h2>
+                                <span className={`font-mono text-[10px] px-2 py-0.5 border uppercase ${degenMode ? 'bg-[#ecfd00] text-black border-black shadow-[2px_2px_0px_0px_#000]' : 'bg-banger-pink text-white border-white'}`}>
                                     {metricName}
                                 </span>
                             </div>
                             <button
                                 onClick={onClose}
-                                className="text-gray-400 hover:text-white transition-colors"
+                                className={`${degenMode ? 'text-black hover:text-white' : 'text-gray-400 hover:text-white'} transition-colors`}
                             >
                                 <X size={20} />
                             </button>
@@ -161,8 +171,8 @@ export const QuickTradeModal: React.FC<QuickTradeModalProps> = ({
                                 className={`
                             p-4 border-4 border-black transition-all flex flex-col items-center gap-1
                             ${side === 'YES'
-                                        ? 'bg-green-500 text-white shadow-[4px_4px_0px_0px_#00ff00]'
-                                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}
+                                        ? (degenMode ? 'bg-[#00ffaa] text-black shadow-[6px_6px_0px_0px_#000]' : 'bg-green-500 text-white shadow-[4px_4px_0px_0px_#00ff00]')
+                                        : (degenMode ? 'bg-[#2d1b54] text-white hover:bg-black' : 'bg-gray-800 text-gray-400 hover:bg-gray-700')}
                         `}
                             >
                                 <ThumbsUp size={24} />
@@ -174,8 +184,8 @@ export const QuickTradeModal: React.FC<QuickTradeModalProps> = ({
                                 className={`
                             p-4 border-4 border-black transition-all flex flex-col items-center gap-1
                             ${side === 'NO'
-                                        ? 'bg-red-500 text-white shadow-[4px_4px_0px_0px_#ff0000]'
-                                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}
+                                        ? (degenMode ? 'bg-[#ff00ff] text-white shadow-[6px_6px_0px_0px_#000]' : 'bg-red-500 text-white shadow-[4px_4px_0px_0px_#ff0000]')
+                                        : (degenMode ? 'bg-[#2d1b54] text-white hover:bg-black' : 'bg-gray-800 text-gray-400 hover:bg-gray-700')}
                         `}
                             >
                                 <ThumbsDown size={24} />
@@ -186,13 +196,13 @@ export const QuickTradeModal: React.FC<QuickTradeModalProps> = ({
 
                         {/* Amount Input */}
                         <div className="px-4 pb-4">
-                            <div className="bg-gray-900 border-2 border-gray-700 p-3">
+                            <div className={`border-2 p-3 transition-colors ${degenMode ? 'bg-black border-[#ecfd00]' : 'bg-gray-900 border-gray-700'}`}>
                                 <div className="flex justify-between items-center mb-2">
-                                    <span className="font-mono text-[10px] text-gray-400 uppercase">Wager Amount</span>
-                                    <span className="font-mono text-[10px] text-gray-400">BAL: ${balanceDisplay}</span>
+                                    <span className={`font-mono text-[10px] uppercase ${degenMode ? 'text-[#ecfd00]' : 'text-gray-400'}`}>Wager Amount</span>
+                                    <span className={`font-mono text-[10px] ${degenMode ? 'text-[#00ffff]' : 'text-gray-400'}`}>BAL: ${balanceDisplay}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <DollarSign className="text-gray-500" size={20} />
+                                    <DollarSign className={degenMode ? 'text-[#ff00ff]' : 'text-gray-500'} size={20} />
                                     <input
                                         type="number"
                                         value={amount}
@@ -208,8 +218,8 @@ export const QuickTradeModal: React.FC<QuickTradeModalProps> = ({
                                             onClick={() => setAmount(val.toString())}
                                             className={`flex-1 py-1 border font-mono text-xs transition-colors
                                         ${amount === val.toString()
-                                                    ? 'bg-banger-cyan text-black border-banger-cyan'
-                                                    : 'bg-gray-800 text-gray-400 border-gray-600 hover:border-gray-500'}`}
+                                                    ? (degenMode ? 'bg-[#ecfd00] text-black border-[#ecfd00] shadow-[2px_2px_0px_0px_#000]' : 'bg-banger-cyan text-black border-banger-cyan')
+                                                    : (degenMode ? 'bg-[#2d1b54] text-white border-[#ff00ff] hover:bg-black' : 'bg-gray-800 text-gray-400 border-gray-600 hover:border-gray-500')}`}
                                         >
                                             ${val}
                                         </button>
@@ -219,23 +229,23 @@ export const QuickTradeModal: React.FC<QuickTradeModalProps> = ({
                         </div>
 
                         {/* Stats */}
-                        <div className="mx-4 mb-4 border-t-2 border-dashed border-gray-700 pt-3">
+                        <div className={`mx-4 mb-4 border-t-2 border-dashed pt-3 ${degenMode ? 'border-[#ff00ff]' : 'border-gray-700'}`}>
                             <div className="space-y-2 font-mono text-sm">
-                                <div className="flex justify-between text-gray-400">
-                                    <span>Price</span>
+                                <div className="flex justify-between">
+                                    <span className={degenMode ? 'text-[#00ffff]' : 'text-gray-400'}>Price</span>
                                     <span className="text-white">{currentPrice}¢</span>
                                 </div>
-                                <div className="flex justify-between text-gray-400">
-                                    <span>Estimated Shares</span>
+                                <div className="flex justify-between">
+                                    <span className={degenMode ? 'text-[#00ffff]' : 'text-gray-400'}>Estimated Shares</span>
                                     <span className="text-white">{estimatedShares}</span>
                                 </div>
-                                <div className="flex justify-between text-gray-400">
-                                    <span>Max Payout</span>
-                                    <span className="text-green-400">${maxPayout.toFixed(2)}</span>
+                                <div className="flex justify-between">
+                                    <span className={degenMode ? 'text-[#00ffff]' : 'text-gray-400'}>Max Payout</span>
+                                    <span className={degenMode ? 'text-[#00ffaa] font-bold underline' : 'text-green-400'}>${maxPayout.toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between text-gray-400">
-                                    <span>Potential ROI</span>
-                                    <span className={`${Number(potentialROI) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                <div className="flex justify-between">
+                                    <span className={degenMode ? 'text-[#00ffff]' : 'text-gray-400'}>Potential ROI</span>
+                                    <span className={`${Number(potentialROI) > 0 ? (degenMode ? 'text-white bg-[#00ffaa] px-1 text-black' : 'text-green-400') : 'text-red-400'}`}>
                                         +{potentialROI}%
                                     </span>
                                 </div>
@@ -244,7 +254,7 @@ export const QuickTradeModal: React.FC<QuickTradeModalProps> = ({
 
                         {/* Error */}
                         {error && (
-                            <div className="mx-4 mb-4 bg-red-900/50 border border-red-500 text-red-400 p-2 font-mono text-xs flex items-center gap-2">
+                            <div className={`mx-4 mb-4 border p-2 font-mono text-xs flex items-center gap-2 ${degenMode ? 'bg-black border-[#ff00ff] text-[#ff00ff]' : 'bg-red-900/50 border-red-500 text-red-400'}`}>
                                 <AlertCircle size={14} />
                                 {error}
                             </div>
@@ -282,8 +292,8 @@ export const QuickTradeModal: React.FC<QuickTradeModalProps> = ({
 
                         {/* Footer */}
                         <div className="text-center pb-3">
-                            <span className="font-mono text-[10px] text-gray-500">
-                                Fee: 1% • Powered by BANGR AMM
+                            <span className={`font-mono text-[10px] ${degenMode ? 'text-[#ff00ff]' : 'text-gray-500'}`}>
+                                {degenMode ? '🚀 ALPHA GENERATED BY DEGEN SCANNER 🚀' : 'Fee: 1% • Powered by BANGR AMM'}
                             </span>
                         </div>
                     </div>

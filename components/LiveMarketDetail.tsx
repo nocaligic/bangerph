@@ -10,9 +10,10 @@ import { ConnectedTradePanel } from './ConnectedTradePanel';
 import { TweetDisplay } from './TweetDisplay';
 import { BrutalistButton } from './BrutalistButton';
 import { MetricBarChart } from './MetricBarChart';
+import { useDegenMode } from '../contexts/DegenContext';
 import {
     ArrowLeft, Clock, Eye, Heart, Repeat2, MessageCircle, ExternalLink, RefreshCw,
-    TrendingUp, Activity, Share, Twitter, Zap
+    TrendingUp, Activity, Share, Twitter, Zap, Sparkles, Trophy
 } from 'lucide-react';
 
 
@@ -36,26 +37,23 @@ const MOCK_CHART_DATA = [
 ];
 
 export const LiveMarketDetail: React.FC<LiveMarketDetailProps> = ({ marketId, onBack }) => {
+    const { degenMode } = useDegenMode();
     const { market, quotedTweet, isLoading, refetch } = useLiveMarket(marketId);
     const { data: tradesData, refetch: refetchTrades } = useMarketTrades(marketId);
 
-    // Combined refetch for after trades
     const handleTradeSuccess = () => {
         refetch();
         refetchTrades();
     };
 
-    // Get all trades for activity feed (reversed to show newest first)
     const recentTrades = tradesData?.priceHistory?.slice().reverse() || [];
-
-    // V2: Tweet data comes from contract, no need to fetch from API
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#f0f0f0] flex items-center justify-center">
+            <div className={`min-h-screen flex items-center justify-center ${degenMode ? 'degen-mode bg-[#2d1b54]' : 'bg-[#f0f0f0]'}`}>
                 <div className="text-center">
-                    <RefreshCw className="mx-auto mb-4 animate-spin text-gray-400" size={48} />
-                    <p className="font-mono text-gray-500">Loading market...</p>
+                    <RefreshCw className={`mx-auto mb-4 animate-spin ${degenMode ? 'text-yellow-400' : 'text-gray-400'}`} size={48} />
+                    <p className={`font-mono ${degenMode ? 'text-white' : 'text-gray-500'}`}>Loading market...</p>
                 </div>
             </div>
         );
@@ -63,9 +61,9 @@ export const LiveMarketDetail: React.FC<LiveMarketDetailProps> = ({ marketId, on
 
     if (!market) {
         return (
-            <div className="min-h-screen bg-[#f0f0f0] flex items-center justify-center">
+            <div className={`min-h-screen flex items-center justify-center ${degenMode ? 'degen-mode bg-[#2d1b54]' : 'bg-[#f0f0f0]'}`}>
                 <div className="text-center">
-                    <p className="font-mono text-gray-500 mb-4">Market not found</p>
+                    <p className={`font-mono mb-4 ${degenMode ? 'text-white' : 'text-gray-500'}`}>Market not found</p>
                     <BrutalistButton onClick={onBack}>Go Back</BrutalistButton>
                 </div>
             </div>
@@ -83,7 +81,6 @@ export const LiveMarketDetail: React.FC<LiveMarketDetailProps> = ({ marketId, on
 
     const isActive = market.status === 0;
 
-    // V2: Tweet data comes from contract, not API
     const tweetForDisplay = {
         authorName: market.authorName,
         authorHandle: market.authorHandle,
@@ -95,12 +92,16 @@ export const LiveMarketDetail: React.FC<LiveMarketDetailProps> = ({ marketId, on
             : undefined,
     };
 
-
-
     return (
-        <div className="min-h-screen bg-[#f0f0f0]">
+        <div className={`min-h-screen transition-colors duration-500 ${degenMode ? 'degen-mode' : 'bg-[#f0f0f0]'}`}>
             {/* Header */}
-            <div className="bg-white border-b-4 border-black p-4 shadow-sm">
+            <div className={`border-b-4 border-black p-4 shadow-sm relative overflow-hidden transition-colors ${degenMode ? 'bg-[#ff00ff]' : 'bg-white'}`}>
+                {degenMode && (
+                    <>
+                        <div className="absolute top-2 right-20 animate-bounce text-yellow-300 opacity-60"><Trophy size={40} /></div>
+                        <div className="absolute top-4 left-1/3 animate-pulse text-cyan-200 opacity-40"><Sparkles size={32} /></div>
+                    </>
+                )}
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <BrutalistButton size="sm" variant="outline" onClick={onBack}>
@@ -117,32 +118,27 @@ export const LiveMarketDetail: React.FC<LiveMarketDetailProps> = ({ marketId, on
                                     </span>
                                 )}
                             </div>
-                            <h1 className="font-display text-xl md:text-2xl">
+                            <h1 className={`font-display text-xl md:text-2xl ${degenMode ? 'text-black drop-shadow-[2px_2px_0px_#ecfd00]' : ''}`}>
                                 Predicting: Will it hit {formatValue(market.targetValue)} {metricName}?
                             </h1>
                         </div>
-                    </div>
-                    <div className="flex gap-2">
-                        <BrutalistButton size="sm" variant="outline" className="hidden md:flex gap-2">
-                            <Share size={14} /> SHARE
-                        </BrutalistButton>
                     </div>
                 </div>
             </div>
 
             {/* Main Content */}
-            <div className="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 relative">
+            <div className="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
 
                 {/* Left Column: Chart & Info (Scrollable) */}
                 <div className="lg:col-span-8 space-y-6">
 
                     {/* Tweet Content */}
-                    <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-                        <div className="bg-white border-b-4 border-black p-3 flex justify-between items-center">
-                            <div className="font-mono text-sm font-bold flex items-center gap-2">
+                    <div className={`border-4 border-black transition-all ${degenMode ? 'bg-white shadow-[12px_12px_0px_0px_#000] text-black' : 'bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]'}`}>
+                        <div className={`border-b-4 border-black p-3 flex justify-between items-center ${degenMode ? 'bg-[#ff00ff] text-white' : 'bg-white'}`}>
+                            <div className={`font-mono text-sm font-bold flex items-center gap-2 ${degenMode ? 'text-black font-black' : ''}`}>
                                 <Twitter size={14} className="fill-current" /> THE TWEET
                             </div>
-                            <a href={market.tweetUrl} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-black">
+                            <a href={market.tweetUrl} target="_blank" rel="noopener noreferrer" className={`${degenMode ? 'text-black' : 'text-gray-400'} hover:text-black`}>
                                 <ExternalLink size={14} />
                             </a>
                         </div>
@@ -161,35 +157,35 @@ export const LiveMarketDetail: React.FC<LiveMarketDetailProps> = ({ marketId, on
                     />
 
                     {/* Live Activity Feed */}
-                    <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-                        <div className="flex items-center justify-between p-4 border-b-2 border-black">
+                    <div className={`border-4 border-black transition-all ${degenMode ? 'bg-white shadow-[12px_12px_0px_0px_#000] text-black' : 'bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]'}`}>
+                        <div className={`flex items-center justify-between p-4 border-b-4 border-black ${degenMode ? 'bg-[#00ffaa]' : 'bg-white'}`}>
                             <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                                <h3 className="font-mono text-xs uppercase font-bold text-gray-500">Live Activity</h3>
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce shadow-[0_0_8px_#00ff00]" />
+                                <h3 className={`font-mono text-xs uppercase font-bold ${degenMode ? 'text-black' : 'text-gray-500'}`}>Live Activity</h3>
                             </div>
-                            <span className="font-mono text-[10px] font-bold text-black border-2 border-black px-2 py-0.5 bg-gray-100">
+                            <span className={`font-mono text-[10px] font-bold border-2 border-black px-2 py-0.5 ${degenMode ? 'bg-[#ecfd00] text-black shadow-[2px_2px_0px_0px_#000]' : 'bg-gray-100 text-black'}`}>
                                 {tradesData?.count || 0} TRADES
                             </span>
                         </div>
-                        <div className="max-h-[300px] overflow-y-auto p-4">
+                        <div className="max-h-[300px] overflow-y-auto p-4 custom-scrollbar">
                             <div className="space-y-3">
                                 {recentTrades.length > 0 ? (
                                     recentTrades.map((trade, i) => (
-                                        <div key={i} className="flex justify-between items-center font-mono text-sm border-b border-gray-100 pb-2 last:border-0 last:pb-0">
+                                        <div key={i} className={`flex justify-between items-center font-mono text-sm border-b-2 border-dashed pb-2 last:border-0 last:pb-0 ${degenMode ? 'border-black/20' : 'border-gray-200'}`}>
                                             <div className="flex items-center gap-2">
-                                                <div className="w-6 h-6 rounded-full bg-gray-200 border border-black" />
-                                                <span>
-                                                    {trade.buyer.slice(0, 6)}...{trade.buyer.slice(-4)} bought{' '}
-                                                    <span className={trade.isYes ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                                                <div className={`w-6 h-6 rounded-full border border-black ${degenMode ? 'bg-[#ecfd00]' : 'bg-gray-200'}`} />
+                                                <span className={degenMode ? 'font-bold text-black' : ''}>
+                                                    {trade.buyer.slice(0, 6)}...{trade.buyer.slice(-4)} <span className={degenMode ? 'text-gray-700' : ''}>bought</span>{' '}
+                                                    <span className={trade.isYes ? "text-green-600 font-bold underline" : "text-red-500 font-bold line-through"}>
                                                         {trade.isYes ? 'YES' : 'NO'}
                                                     </span>
                                                 </span>
                                             </div>
-                                            <span className="font-bold">${trade.amount}</span>
+                                            <span className={`font-bold text-lg ${degenMode ? 'text-black' : ''}`}>${trade.amount}</span>
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="text-center text-gray-400 font-mono text-sm py-4">
+                                    <div className="text-center text-gray-400 font-mono text-sm py-4 italic">
                                         No trades yet. Be the first!
                                     </div>
                                 )}
@@ -208,13 +204,13 @@ export const LiveMarketDetail: React.FC<LiveMarketDetailProps> = ({ marketId, on
                         />
 
                         {/* Spread the Hype Box */}
-                        <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-4">
-                            <h3 className="font-display text-lg uppercase mb-3">Spread the Hype</h3>
+                        <div className={`border-4 border-black transition-all p-4 ${degenMode ? 'bg-white shadow-[12px_12px_0px_0px_#000] text-black' : 'bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]'}`}>
+                            <h3 className={`font-display text-lg uppercase mb-3 ${degenMode ? 'text-[#ff00ff]' : ''}`}>Spread the Hype</h3>
                             <div className="grid grid-cols-2 gap-2">
-                                <button className="bg-[#1DA1F2] text-white border-2 border-black font-mono text-xs font-bold py-2 flex items-center justify-center gap-2 hover:brightness-110 active:translate-y-0.5 transition-all">
+                                <button className={`border-2 border-black font-mono text-xs font-bold py-2 flex items-center justify-center gap-2 hover:brightness-110 active:translate-y-0.5 transition-all shadow-hard-sm ${degenMode ? 'bg-[#1DA1F2] text-white' : 'bg-[#1DA1F2] text-white'}`}>
                                     <Twitter size={14} fill="currentColor" /> TWEET
                                 </button>
-                                <button className="bg-white text-black border-2 border-black font-mono text-xs font-bold py-2 flex items-center justify-center gap-2 hover:bg-gray-50 active:translate-y-0.5 transition-all">
+                                <button className={`border-2 border-black font-mono text-xs font-bold py-2 flex items-center justify-center gap-2 hover:bg-gray-50 active:translate-y-0.5 transition-all shadow-hard-sm ${degenMode ? 'bg-[#ecfd00] text-black' : 'bg-white text-black'}`}>
                                     <Share size={14} /> LINK
                                 </button>
                             </div>

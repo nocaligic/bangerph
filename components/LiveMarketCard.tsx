@@ -74,8 +74,8 @@ export const LiveMarketCard: React.FC<LiveMarketCardProps> = ({ market, onClick,
         <div
             onClick={onClick}
             className={`
-                group cursor-pointer relative bg-white border-4 border-black shadow-hard 
-                transition-colors duration-150 flex flex-col w-full
+                market-card group cursor-pointer relative bg-white border-4 border-black shadow-hard 
+                transition-all duration-300 flex flex-col w-full
                 ${metricHoverColor}
             `}
         >
@@ -113,7 +113,7 @@ export const LiveMarketCard: React.FC<LiveMarketCardProps> = ({ market, onClick,
                 </div>
 
                 {/* ARCADE STYLE "WILL THIS HIT" BANNER */}
-                <div className={`relative border-4 border-black ${metricColor} p-4 mt-2 overflow-hidden group-hover:brightness-110 transition-all`}>
+                <div className={`arcade-banner relative border-4 border-black ${metricColor} p-4 mt-2 overflow-hidden group-hover:brightness-110 transition-all`}>
                     <div className="absolute inset-0 opacity-20 pattern-dots pointer-events-none"></div>
 
                     <div className="relative z-10 flex flex-col items-center text-center">

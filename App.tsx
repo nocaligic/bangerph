@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useDegenMode } from './contexts/DegenContext';
 import { Market, ViewState, MarketCategory } from './types';
 import { MarketCard } from './components/MarketCard';
 import { MarketDetail } from './components/MarketDetail';
@@ -68,6 +69,7 @@ const MOCK_MARKETS: Market[] = [
 ];
 
 export default function App() {
+  const { degenMode, toggleDegenMode } = useDegenMode();
   const [view, setView] = useState<ViewState>(ViewState.HOME);
   const [selectedMarket, setSelectedMarket] = useState<Market | null>(null);
   const [selectedMarketId, setSelectedMarketId] = useState<number | null>(null);
@@ -151,23 +153,46 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f0f0f0] text-black font-sans selection:bg-banger-pink selection:text-white pb-20">
+    <div className={`min-h-screen transition-all duration-500 selection:bg-banger-pink selection:text-white pb-20 relative ${degenMode ? 'degen-mode' : 'bg-[#f0f0f0] text-black font-sans'}`}>
+
+      {/* SCANLINE OVERLAY */}
+      <div className="scanline"></div>
+
+      {/* BACKGROUND SHAPES FOR DEGEN MODE */}
+      <div className="degen-bg-shapes">
+        <div className="shape shape-1"></div>
+        <div className="shape shape-2"></div>
+        <div className="shape shape-3"></div>
+        <div className="shape shape-4"></div>
+      </div>
 
       {/* TOP MARQUEE */}
-      <div className="bg-banger-black text-banger-yellow font-mono uppercase text-[10px] md:text-sm py-2 border-b-4 border-black overflow-hidden relative z-50">
+      <div className={`font-mono uppercase text-[10px] md:text-sm py-2 border-b-4 border-black overflow-hidden relative z-50 ${degenMode ? 'bg-striped-yellow text-black' : 'bg-banger-black text-banger-yellow'}`}>
         <div className="marquee-container">
           <div className="marquee-content font-bold">
-            ★ IF IT BANGS YOU BANK ★ ELON IS WATCHING ★ PREDICT THE HYPE ★ NFA BUT DEFINITELY FA ★ LOSE YOUR SAVINGS ★ OR GET RICH ★ DEGEN HOURS ONLY ★ NO BOTS JUST ALPHA ★ WAGMI OR NGMI ★ APE RESPONSIBLY ★ IF IT BANGS YOU BANK ★ ELON IS WATCHING ★ PREDICT THE HYPE ★ NFA BUT DEFINITELY FA ★ LOSE YOUR SAVINGS ★ OR GET RICH ★ DEGEN HOURS ONLY ★ NO BOTS JUST ALPHA ★ WAGMI OR NGMI ★ APE RESPONSIBLY ★ IF IT BANGS YOU BANK ★ ELON IS WATCHING ★ PREDICT THE HYPE ★ NFA BUT DEFINITELY FA ★ LOSE YOUR SAVINGS ★ OR GET RICH ★ DEGEN HOURS ONLY ★ NO BOTS JUST ALPHA ★ WAGMI OR NGMI ★ APE RESPONSIBLY ★ IF IT BANGS YOU BANK ★ ELON IS WATCHING ★ PREDICT THE HYPE ★ NFA BUT DEFINITELY FA ★ LOSE YOUR SAVINGS ★ OR GET RICH ★ DEGEN HOURS ONLY ★ NO BOTS JUST ALPHA ★ WAGMI OR NGMI ★ APE RESPONSIBLY ★
+            {degenMode
+              ? '🔥 LIVE ACTION 🔥 MARKET UP 420% 🔥 VOLUME: $2M TRADED IN LAST HOUR 🔥 HOT: ELON TWEET AT 68% YES 🔥 NEW: DEGEN MODE ACTIVE 🔥 TRENDING: $BANGR 🔥'
+              : '★ IF IT BANGS YOU BANK ★ ELON IS WATCHING ★ PREDICT THE HYPE ★ NFA BUT DEFINITELY FA ★ LOSE YOUR SAVINGS ★ OR GET RICH ★ DEGEN HOURS ONLY ★ NO BOTS JUST ALPHA ★ WAGMI OR NGMI ★ APE RESPONSIBLY ★'}
           </div>
         </div>
       </div>
 
       {/* HEADER */}
-      <header className="sticky top-0 z-50 bg-white border-b-4 border-black px-4 py-2 md:px-8 flex justify-between items-center shadow-lg h-[60px] md:h-[70px]">
-        <div className="flex items-center gap-3 cursor-pointer group" onClick={handleBackToHome}>
-          <BangrLogo className="h-10 md:h-12 group-hover:rotate-12 transition-transform origin-center" />
-          <div className="font-display text-3xl md:text-5xl tracking-tighter pt-1">
-            BANGR
+      <header className={`sticky top-0 z-50 border-b-4 border-black px-4 py-2 md:px-8 flex justify-between items-center shadow-lg h-[60px] md:h-[70px] transition-all duration-300 relative ${degenMode ? 'bg-banger-pink' : 'bg-white'}`}>
+        <div className="flex items-center gap-3 group">
+          <div className="flex items-center gap-3">
+            <BangrLogo
+              className="h-10 md:h-12 group-hover:rotate-12 transition-transform origin-center pointer-events-none"
+            />
+            <div className="font-display text-3xl md:text-5xl tracking-tighter pt-1 flex items-center">
+              <span onClick={handleBackToHome} className="cursor-pointer">BANG</span>
+              <span
+                onClick={(e) => { e.stopPropagation(); toggleDegenMode(); }}
+                className="cursor-pointer underline decoration-banger-pink decoration-4 underline-offset-4"
+              >
+                R
+              </span>
+            </div>
           </div>
         </div>
 
@@ -268,17 +293,17 @@ export default function App() {
       {view === ViewState.HOME && (
         <>
           {/* COMPACT DASHBOARD HERO */}
-          <section className="grid grid-cols-1 lg:grid-cols-12 border-b-4 border-black bg-white">
-            <div className="lg:col-span-7 p-6 md:p-12 flex flex-col justify-center border-b-4 lg:border-b-0 lg:border-r-4 border-black relative overflow-hidden bg-pattern-grid">
+          <section className={`grid grid-cols-1 lg:grid-cols-12 border-b-4 border-black transition-all duration-500 relative z-10 ${degenMode ? 'bg-transparent' : 'bg-white'}`}>
+            <div className={`lg:col-span-7 p-6 md:p-12 flex flex-col justify-center border-b-4 lg:border-b-0 lg:border-r-4 border-black relative overflow-hidden ${degenMode ? 'bg-transparent' : 'bg-pattern-grid'}`}>
               <div className="relative z-10">
-                <div className="inline-block bg-black text-white font-mono text-[10px] px-2 py-0.5 mb-4 transform -rotate-1 shadow-[2px_2px_0px_0px_#ecfd00]">
+                <div className={`inline-block font-mono text-[10px] px-2 py-0.5 mb-4 transform -rotate-1 shadow-[2px_2px_0px_0px_#ecfd00] ${degenMode ? 'bg-white text-black border-2 border-black' : 'bg-black text-white'}`}>
                   TRADING PROTOCOL v1.0
                 </div>
-                <h1 className="font-display text-4xl md:text-6xl lg:text-7xl uppercase leading-[0.85] mb-6 tracking-tighter">
+                <h1 className={`font-display text-4xl md:text-6xl lg:text-7xl uppercase leading-[0.85] mb-6 tracking-tighter ${degenMode ? 'text-banger-yellow' : ''}`}>
                   BET ON <br />
-                  <span className="text-banger-pink">VIRAL</span> METRICS
+                  <span className={degenMode ? 'text-white' : 'text-banger-pink'}>VIRAL</span> METRICS
                 </h1>
-                <p className="font-mono text-xs md:text-sm max-w-md mb-8 border-l-4 border-banger-cyan pl-4 text-gray-600">
+                <p className={`font-mono text-xs md:text-sm max-w-md mb-8 border-l-4 pl-4 ${degenMode ? 'border-banger-yellow text-white' : 'border-banger-cyan text-gray-600'}`}>
                   The Nasdaq for Twitter. Spot viral content early, buy prediction tickets, and profit when the hype hits the target.
                 </p>
                 <div className="flex flex-wrap gap-4">
@@ -298,8 +323,8 @@ export default function App() {
           </section>
 
           {/* STICKY FILTER BAR */}
-          <div className="sticky top-[60px] md:top-[70px] z-40 bg-[#f0f0f0] border-b-4 border-black pt-1">
-            <div className="flex gap-2 p-3 max-w-7xl mx-auto overflow-x-auto no-scrollbar">
+          <div className={`sticky top-[60px] md:top-[70px] z-40 border-b-4 border-black pt-1 filter-bar-container ${degenMode ? '' : 'bg-[#f0f0f0]'}`}>
+            <div className="flex gap-2 p-3 max-w-7xl mx-auto overflow-x-auto no-scrollbar relative z-10">
               {categories.map((cat) => (
                 <button
                   key={cat}

@@ -14,6 +14,8 @@ interface ProvidersProps {
     children: React.ReactNode;
 }
 
+import { DegenProvider } from '../contexts/DegenContext';
+
 export function Providers({ children }: ProvidersProps) {
     // Always render providers - Privy will show error if no app ID
     // But wagmi hooks will still work
@@ -37,7 +39,9 @@ export function Providers({ children }: ProvidersProps) {
         >
             <QueryClientProvider client={queryClient}>
                 <WagmiProvider config={wagmiConfig}>
-                    {children}
+                    <DegenProvider>
+                        {children}
+                    </DegenProvider>
                 </WagmiProvider>
             </QueryClientProvider>
         </PrivyProvider>

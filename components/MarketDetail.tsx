@@ -6,7 +6,8 @@ import { TradePanel } from './TradePanel';
 import { ConnectedTradePanel } from './ConnectedTradePanel';
 import { TweetDisplay } from './TweetDisplay';
 import { analyzeVirality } from '../services/geminiService';
-import { BrainCircuit, Users, Activity, Copy, Twitter, Eye, Repeat, Heart, MessageCircle, Clock } from 'lucide-react';
+import { useDegenMode } from '../contexts/DegenContext';
+import { BrainCircuit, Users, Activity, Copy, Twitter, Eye, Repeat, Heart, MessageCircle, Clock, Trophy, Sparkles } from 'lucide-react';
 
 interface MarketDetailProps {
   market: Market;
@@ -24,6 +25,7 @@ const getMetricConfig = (type: MetricType) => {
 };
 
 export const MarketDetail: React.FC<MarketDetailProps> = ({ market, onBack }) => {
+  const { degenMode } = useDegenMode();
   const selectedMetric = market.featuredMetric;
   const [aiAnalysis, setAiAnalysis] = useState<{ loading: boolean, result: any | null }>({ loading: false, result: null });
   const [copied, setCopied] = useState(false);
@@ -65,14 +67,14 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({ market, onBack }) =>
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 animate-in slide-in-from-bottom-4 duration-500">
+    <div className={`max-w-7xl mx-auto px-4 py-8 animate-in slide-in-from-bottom-4 duration-500 relative z-10 ${degenMode ? 'degen-mode' : ''}`}>
       {/* Breadcrumb Nav */}
-      <nav className="flex items-center gap-2 mb-8 font-mono text-sm text-gray-500">
-        <button onClick={onBack} className="hover:text-black hover:underline underline-offset-4 decoration-2 decoration-banger-pink">HOME</button>
-        <span>/</span>
-        <span className="text-black font-bold truncate max-w-[200px]">{market.category}</span>
-        <span>/</span>
-        <span className="truncate max-w-[200px]">{market.id}</span>
+      <nav className={`flex items-center gap-2 mb-8 font-mono text-sm px-4 py-2 border-2 border-black inline-flex transition-colors ${degenMode ? 'bg-[#ff00ff] text-black shadow-[4px_4px_0px_0px_#000]' : 'bg-white text-gray-500 shadow-hard-sm'}`}>
+        <button onClick={onBack} className={`hover:underline underline-offset-4 decoration-2 ${degenMode ? 'text-black decoration-white' : 'hover:text-black decoration-banger-pink'}`}>HOME</button>
+        <span className={degenMode ? 'text-white' : ''}>/</span>
+        <span className={`font-bold truncate max-w-[200px] ${degenMode ? 'text-black' : 'text-black'}`}>{market.category}</span>
+        <span className={degenMode ? 'text-white' : ''}>/</span>
+        <span className={`truncate max-w-[200px] ${degenMode ? 'text-white' : ''}`}>{market.id}</span>
       </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -81,38 +83,44 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({ market, onBack }) =>
         <div className="lg:col-span-8 space-y-8">
 
           {/* Header Block */}
-          <div className="bg-white border-4 border-black shadow-hard p-6 md:p-8 relative">
-            <div className="absolute -top-4 -right-4 bg-banger-yellow border-4 border-black px-4 py-2 font-mono font-bold text-sm shadow-hard-sm transform rotate-2 z-10">
+          <div className={`border-4 border-black p-6 md:p-8 relative transition-all ${degenMode ? 'bg-white shadow-[12px_12px_0px_0px_#000] text-black' : 'bg-white shadow-hard'}`}>
+            {degenMode && (
+              <>
+                <div className="absolute top-[-30px] right-20 animate-bounce text-[#ecfd00] opacity-80"><Trophy size={64} /></div>
+                <div className="absolute top-10 left-[-20px] animate-pulse text-[#00ffff] opacity-60"><Sparkles size={48} /></div>
+              </>
+            )}
+            <div className={`absolute -top-4 -right-4 border-4 border-black px-4 py-2 font-mono font-bold text-sm shadow-hard-sm transform rotate-2 z-10 transition-colors ${degenMode ? 'bg-[#ff00ff] text-white' : 'bg-banger-yellow text-black'}`}>
               ENDS {market.endDate}
             </div>
 
-            <h1 className="font-display text-3xl md:text-4xl lg:text-5xl uppercase leading-[0.9] mb-6 text-black border-b-4 border-black pb-4">
+            <h1 className={`font-display text-3xl md:text-4xl lg:text-5xl uppercase leading-[0.9] mb-6 border-b-4 border-black pb-4 ${degenMode ? 'text-black' : 'text-black'}`}>
               {market.title}
             </h1>
 
             {/* The Tweet */}
-            <div className="border-4 border-black p-4 bg-gray-50">
-              <div className="font-mono text-xs font-bold text-gray-400 mb-2 uppercase">Market Source</div>
+            <div className={`border-4 border-black p-4 transition-colors ${degenMode ? 'bg-[#f0f0f0]' : 'bg-gray-50'}`}>
+              <div className={`font-mono text-xs font-bold mb-2 uppercase ${degenMode ? 'text-[#ff00ff]' : 'text-gray-400'}`}>Market Source</div>
               <TweetDisplay tweet={market.tweet} hideMetrics={true} />
             </div>
 
             <div className="flex gap-4 pt-4 mt-4">
-              <div className="flex items-center gap-2 font-mono text-sm font-bold">
-                <Users size={16} /> <span className="text-gray-600">Vol:</span> {market.volume}
+              <div className={`flex items-center gap-2 font-mono text-sm font-bold ${degenMode ? 'text-black' : ''}`}>
+                <Users size={16} className={degenMode ? 'text-[#ff00ff]' : ''} /> <span className={degenMode ? 'text-gray-600' : 'text-gray-600'}>Vol:</span> {market.volume}
               </div>
             </div>
           </div>
 
           {/* CHART SECTION */}
-          <div className="bg-white border-4 border-black shadow-hard relative z-0">
-            <div className="p-4 border-b-4 border-black flex justify-between items-center bg-gray-50">
+          <div className={`border-4 border-black relative z-0 transition-all ${degenMode ? 'bg-[#2d1b54] shadow-[12px_12px_0px_0px_#000]' : 'bg-white shadow-hard'}`}>
+            <div className={`p-4 border-b-4 border-black flex justify-between items-center transition-colors ${degenMode ? 'bg-[#00ffaa]' : 'bg-gray-50'}`}>
               <div className="flex flex-col">
-                <span className="font-mono text-xs text-gray-500 uppercase">Predicting</span>
-                <h3 className={`font-display text-xl uppercase ${activeConfig.text}`}>
+                <span className={`font-mono text-xs uppercase ${degenMode ? 'text-black font-bold' : 'text-gray-500'}`}>Predicting</span>
+                <h3 className={`font-display text-xl uppercase ${degenMode ? 'text-black drop-shadow-[1px_1px_0px_#fff]' : activeConfig.text}`}>
                   Will it hit {formatTarget(activeMetricData.target)} {activeConfig.label}?
                 </h3>
               </div>
-              <div className="font-mono text-xs px-2 py-1 bg-green-100 text-green-800 border-2 border-green-800 flex items-center gap-1">
+              <div className={`font-mono text-xs px-2 py-1 flex items-center gap-1 border-2 border-black transition-colors ${degenMode ? 'bg-[#ff00ff] text-white shadow-[2px_2px_0px_0px_#000]' : 'bg-green-100 text-green-800 border-green-800'}`}>
                 <Activity size={12} /> +12.4% (24H)
               </div>
             </div>
@@ -158,22 +166,22 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({ market, onBack }) =>
           </div>
 
           {/* AI ORACLE SECTION */}
-          <div className="bg-banger-purple border-4 border-black shadow-hard p-6 md:p-8 text-white relative overflow-hidden group">
-            <div className="absolute -right-10 -bottom-10 opacity-20 transform group-hover:scale-110 transition-transform duration-700">
+          <div className={`border-4 border-black shadow-hard p-6 md:p-8 text-white relative overflow-hidden group transition-all ${degenMode ? 'bg-[#2d1b54]' : 'bg-banger-purple'}`}>
+            <div className={`absolute -right-10 -bottom-10 opacity-20 transform group-hover:scale-110 transition-transform duration-700 ${degenMode ? 'text-[#ff00ff]' : ''}`}>
               <BrainCircuit size={200} />
             </div>
 
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-4">
-                <div className="bg-white text-banger-purple p-2 border-2 border-black">
+                <div className={`p-2 border-2 border-black ${degenMode ? 'bg-[#ecfd00] text-black' : 'bg-white text-banger-purple'}`}>
                   <BrainCircuit size={24} />
                 </div>
-                <h3 className="font-display text-3xl uppercase text-banger-yellow drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                <h3 className={`font-display text-3xl uppercase drop-shadow-[2px_2px_0px_rgba(0,0,0,1)] ${degenMode ? 'text-[#00ffff]' : 'text-banger-yellow'}`}>
                   AI Vibe Check
                 </h3>
               </div>
 
-              <p className="font-mono text-sm mb-6 max-w-lg leading-relaxed">
+              <p className={`font-mono text-sm mb-6 max-w-lg leading-relaxed ${degenMode ? 'text-white' : ''}`}>
                 Not sure where to put your chips? Our Gemini-powered oracle analyzes the timeline sentiment, meme velocity, and cultural impact.
               </p>
 
@@ -235,7 +243,7 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({ market, onBack }) =>
             )}
 
             {/* Share Section */}
-            <div className="bg-white border-4 border-black shadow-hard p-4">
+            <div className={`bg-white border-4 border-black shadow-hard p-4 ${degenMode ? 'text-black' : ''}`}>
               <div className="font-display text-lg mb-3 uppercase">Spread the Hype</div>
               <div className="grid grid-cols-2 gap-3">
                 <BrutalistButton
@@ -258,8 +266,8 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({ market, onBack }) =>
             </div>
 
             {/* Activity Feed */}
-            <div className="bg-white border-4 border-black shadow-hard p-4 max-h-60 overflow-y-auto">
-              <h4 className="font-mono font-bold text-xs mb-3 uppercase text-gray-500 flex items-center gap-2">
+            <div className={`bg-white border-4 border-black shadow-hard p-4 max-h-60 overflow-y-auto ${degenMode ? 'text-black font-bold' : ''}`}>
+              <h4 className={`font-mono font-bold text-xs mb-3 uppercase flex items-center gap-2 ${degenMode ? 'text-black' : 'text-gray-500'}`}>
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 Live Activity
               </h4>
@@ -268,13 +276,13 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({ market, onBack }) =>
                   <div key={i} className="flex items-center gap-2 border-b border-gray-200 pb-2 last:border-0">
                     <div className="w-6 h-6 bg-gray-200 border border-black rounded-full"></div>
                     <div className="flex-grow">
-                      <span className="font-bold">anon{Math.floor(Math.random() * 1000)}</span>
-                      <span className="text-gray-500 mx-1">bought</span>
+                      <span className={`font-bold ${degenMode ? 'text-black' : ''}`}>anon{Math.floor(Math.random() * 1000)}</span>
+                      <span className={`mx-1 ${degenMode ? 'text-gray-700 font-bold' : 'text-gray-500'}`}>bought</span>
                       <span className={`font-bold ${Math.random() > 0.5 ? "text-green-600" : "text-red-500"}`}>
                         {Math.random() > 0.5 ? "YES" : "NO"}
                       </span>
                     </div>
-                    <span className="font-bold">${Math.floor(Math.random() * 500)}</span>
+                    <span className={`font-bold ${degenMode ? 'text-black font-mono bg-[#ecfd00] px-1' : ''}`}>${Math.floor(Math.random() * 500)}</span>
                   </div>
                 ))}
               </div>

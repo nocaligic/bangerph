@@ -20,7 +20,11 @@ interface PortfolioPageProps {
     onNavigateToMarket: (marketId: number) => void;
 }
 
+import { useDegenMode } from '../contexts/DegenContext';
+import { Sparkles, Trophy, Star, Ghost } from 'lucide-react';
+
 export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onBack, onNavigateToMarket }) => {
+    const { degenMode } = useDegenMode();
     const { address } = useAccount();
     const [copied, setCopied] = useState(false);
     const [activeTab, setActiveTab] = useState<'overview' | 'positions' | 'history'>('positions');
@@ -78,21 +82,30 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onBack, onNavigate
     const shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : '';
 
     return (
-        <div className="min-h-screen bg-[#f0f0f0]">
+        <div className={`min-h-screen transition-colors duration-500 ${degenMode ? 'degen-mode' : 'bg-[#f0f0f0]'}`}>
             {/* Header */}
-            <div className="bg-white border-b-4 border-black p-4 md:p-6">
-                <div className="max-w-6xl mx-auto">
+            <div className={`border-b-4 border-black p-4 md:p-6 relative overflow-hidden transition-colors ${degenMode ? 'bg-[#ff00ff]' : 'bg-white'}`}>
+                {degenMode && (
+                    <>
+                        <div className="absolute top-4 right-10 animate-bounce text-yellow-300 transform rotate-12 opacity-50"><Trophy size={48} /></div>
+                        <div className="absolute bottom-2 left-1/4 animate-pulse text-cyan-300 transform -rotate-12 opacity-50"><Star size={32} /></div>
+                        <div className="absolute top-1/2 right-1/4 opacity-30 text-purple-300"><Sparkles size={64} className="animate-pulse" /></div>
+                    </>
+                )}
+                <div className="max-w-6xl mx-auto relative z-10">
                     <div className="flex items-center gap-4 mb-4">
                         <BrutalistButton size="sm" variant="outline" onClick={onBack}>
                             <ArrowLeft size={16} />
                         </BrutalistButton>
-                        <h1 className="font-display text-3xl md:text-4xl">MY PORTFOLIO</h1>
+                        <h1 className={`font-display text-3xl md:text-5xl tracking-tighter ${degenMode ? 'text-black drop-shadow-[4px_4px_0px_#ecfd00]' : ''}`}>
+                            MY PORTFOLIO
+                        </h1>
                     </div>
 
                     {/* Wallet Info */}
                     <div className="flex flex-wrap items-center gap-4">
-                        <div className="flex items-center gap-2 bg-banger-yellow border-2 border-black px-4 py-2">
-                            <Wallet size={18} />
+                        <div className={`flex items-center gap-2 border-4 border-black px-4 py-2 shadow-hard-sm transition-colors ${degenMode ? 'bg-[#ecfd00] text-black' : 'bg-banger-yellow'}`}>
+                            <Wallet size={18} strokeWidth={3} />
                             <span className="font-mono text-sm font-bold">{shortAddress}</span>
                             <button onClick={copyAddress} className="hover:scale-110 transition-transform">
                                 {copied ? <Check size={14} /> : <Copy size={14} />}
@@ -102,7 +115,7 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onBack, onNavigate
                             href={`https://testnet.bscscan.com/address/${address}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-sm font-mono text-gray-600 hover:text-black"
+                            className={`flex items-center gap-1 text-sm font-mono font-bold transition-colors ${degenMode ? 'text-white hover:text-black' : 'text-gray-600 hover:text-black'}`}
                         >
                             View on BSCScan <ExternalLink size={12} />
                         </a>
@@ -111,44 +124,44 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onBack, onNavigate
             </div>
 
             {/* Balance Cards */}
-            <div className="max-w-6xl mx-auto p-4 md:p-6">
+            <div className="max-w-6xl mx-auto p-4 md:p-6 relative z-10">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                        <div className="flex items-center gap-2 text-gray-500 text-xs font-mono mb-2">
+                    <div className={`bg-white border-4 border-black p-4 shadow-hard transition-all ${degenMode ? 'text-black hover:-translate-y-1 hover:shadow-[12px_12px_0px_0px_#ecfd00]' : 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}`}>
+                        <div className={`flex items-center gap-2 text-xs font-mono mb-2 ${degenMode ? 'text-black/60 font-bold' : 'text-gray-500'}`}>
                             <Coins size={14} />
                             USDC BALANCE
                         </div>
-                        <div className="font-display text-3xl text-green-600">
+                        <div className={`font-display text-3xl ${degenMode ? 'text-[#00aa88] drop-shadow-[1px_1px_0px_#000]' : 'text-green-600'}`}>
                             ${formattedUSDC}
                         </div>
                     </div>
 
-                    <div className="bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                        <div className="flex items-center gap-2 text-gray-500 text-xs font-mono mb-2">
+                    <div className={`bg-white border-4 border-black p-4 shadow-hard transition-all ${degenMode ? 'text-black hover:-translate-y-1 hover:shadow-[12px_12px_0px_0px_#00ffff]' : 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}`}>
+                        <div className={`flex items-center gap-2 text-xs font-mono mb-2 ${degenMode ? 'text-black/60 font-bold' : 'text-gray-500'}`}>
                             <Activity size={14} />
                             BNB (GAS)
                         </div>
-                        <div className="font-display text-3xl text-yellow-600">
+                        <div className={`font-display text-3xl ${degenMode ? 'text-[#ccbb00] drop-shadow-[1px_1px_0px_#000]' : 'text-yellow-600'}`}>
                             {formattedBNB}
                         </div>
                     </div>
 
-                    <div className="bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                        <div className="flex items-center gap-2 text-gray-500 text-xs font-mono mb-2">
+                    <div className={`bg-white border-4 border-black p-4 shadow-hard transition-all ${degenMode ? 'text-black hover:-translate-y-1 hover:shadow-[12px_12px_0px_0px_#ff00ff]' : 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}`}>
+                        <div className={`flex items-center gap-2 text-xs font-mono mb-2 ${degenMode ? 'text-black/60 font-bold' : 'text-gray-500'}`}>
                             <Zap size={14} />
-                            MARKETS CREATED
+                            CREATED
                         </div>
-                        <div className="font-display text-3xl">
+                        <div className={`font-display text-3xl ${degenMode ? 'text-black' : ''}`}>
                             {isCreatedMarketsLoading ? '...' : createdMarkets.length}
                         </div>
                     </div>
 
-                    <div className="bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                        <div className="flex items-center gap-2 text-gray-500 text-xs font-mono mb-2">
-                            <TrendingUp size={14} className="text-green-500" />
+                    <div className={`bg-white border-4 border-black p-4 shadow-hard transition-all ${degenMode ? 'text-black hover:-translate-y-1 hover:shadow-[12px_12px_0px_0px_#ecfd00]' : 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}`}>
+                        <div className={`flex items-center gap-2 text-xs font-mono mb-2 ${degenMode ? 'text-black/60 font-bold' : 'text-gray-500'}`}>
+                            <TrendingUp size={14} className={degenMode ? 'text-black' : "text-green-500"} />
                             TOTAL P&L
                         </div>
-                        <div className="font-display text-3xl text-gray-400">
+                        <div className={`font-display text-3xl ${degenMode ? 'text-[#ff00ff] drop-shadow-[1px_1px_0px_#000]' : 'text-gray-400'}`}>
                             $0.00
                         </div>
                     </div>
@@ -175,7 +188,7 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onBack, onNavigate
                 </div>
 
                 {/* Content */}
-                <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                <div className={`bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] ${degenMode ? 'text-black' : ''}`}>
                     {activeTab === 'overview' && (
                         <div className="p-6">
                             <div className="flex justify-between items-center mb-4">
@@ -221,13 +234,13 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onBack, onNavigate
                                             >
                                                 <div>
                                                     {fullMarket && (
-                                                        <div className="font-mono text-sm text-gray-500">@{fullMarket.authorHandle}</div>
+                                                        <div className={`font-mono text-sm ${degenMode ? 'text-black font-bold' : 'text-gray-500'}`}>@{fullMarket.authorHandle}</div>
                                                     )}
                                                     <div className="font-display text-lg">
                                                         {Number(createdMarket.targetValue).toLocaleString()} {metricLabels[createdMarket.metric]}
                                                     </div>
                                                     {createdMarket.category && (
-                                                        <div className="text-xs text-gray-500 font-mono">{createdMarket.category}</div>
+                                                        <div className={`text-xs font-mono ${degenMode ? 'text-black' : 'text-gray-500'}`}>{createdMarket.category}</div>
                                                     )}
                                                 </div>
                                                 <div className="text-right">
@@ -301,11 +314,11 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onBack, onNavigate
                                                 className="flex items-center justify-between p-4 border-2 border-black hover:bg-gray-50 cursor-pointer transition-colors"
                                             >
                                                 <div className="flex-1">
-                                                    <div className="font-mono text-sm text-gray-500">@{market.authorHandle}</div>
+                                                    <div className={`font-mono text-sm ${degenMode ? 'text-black font-bold' : 'text-gray-500'}`}>@{market.authorHandle}</div>
                                                     <div className="font-display text-lg">
                                                         {Number(market.targetValue).toLocaleString()} {metricLabels[market.metric]}
                                                     </div>
-                                                    <div className="text-xs text-gray-500 mt-1 line-clamp-1">
+                                                    <div className={`text-xs mt-1 line-clamp-1 ${degenMode ? 'text-gray-700' : 'text-gray-500'}`}>
                                                         {market.tweetText}
                                                     </div>
                                                 </div>
@@ -389,7 +402,7 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onBack, onNavigate
                                                         <div className="font-mono text-sm font-bold">
                                                             {trade.isYes ? 'Bought YES' : 'Bought NO'}
                                                         </div>
-                                                        <div className="text-xs text-gray-500">
+                                                        <div className={`text-xs ${degenMode ? 'text-black' : 'text-gray-500'}`}>
                                                             {market ? (
                                                                 <>{Number(market.targetValue).toLocaleString()} {metricLabels[market.metric]}</>
                                                             ) : (
@@ -431,7 +444,7 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onBack, onNavigate
                         href="https://testnet.bnbchain.org/faucet-smart"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 p-4 bg-white border-4 border-black font-mono text-sm font-bold hover:bg-banger-yellow transition-colors"
+                        className={`flex items-center justify-center gap-2 p-4 bg-white border-4 border-black font-mono text-sm font-bold transition-colors ${degenMode ? 'text-black hover:bg-[#ecfd00]' : 'hover:bg-banger-yellow'}`}
                     >
                         Get Testnet BNB <ExternalLink size={14} />
                     </a>
@@ -439,7 +452,7 @@ export const PortfolioPage: React.FC<PortfolioPageProps> = ({ onBack, onNavigate
                         href={`https://testnet.bscscan.com/token/${CONTRACTS.bscTestnet.mockUSDC}?a=${address}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 p-4 bg-white border-4 border-black font-mono text-sm font-bold hover:bg-banger-yellow transition-colors"
+                        className={`flex items-center justify-center gap-2 p-4 bg-white border-4 border-black font-mono text-sm font-bold transition-colors ${degenMode ? 'text-black hover:bg-[#ecfd00]' : 'hover:bg-banger-yellow'}`}
                     >
                         View USDC Txns <ExternalLink size={14} />
                     </a>

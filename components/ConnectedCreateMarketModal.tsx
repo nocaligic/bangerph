@@ -4,8 +4,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { BrutalistButton } from './BrutalistButton';
-import { X, Twitter, Zap, Loader2, AlertCircle, Eye, Heart, Repeat, MessageCircle, DollarSign, Lock } from 'lucide-react';
+import { X, Twitter, Zap, Loader2, AlertCircle, Eye, Heart, Repeat, MessageCircle, DollarSign, Lock, Sparkles, Trophy } from 'lucide-react';
 import { useWallet } from '../lib/useWallet';
+import { useDegenMode } from '../contexts/DegenContext';
 import {
     useCreateMarket,
     useApproveUsdc,
@@ -54,6 +55,7 @@ export const ConnectedCreateMarketModal: React.FC<ConnectedCreateMarketModalProp
     onClose,
     onSuccess
 }) => {
+    const { degenMode } = useDegenMode();
     const { isConnected, address, connect } = useWallet();
     const [tweetUrl, setTweetUrl] = useState('');
     const [step, setStep] = useState<'input' | 'loading' | 'configure' | 'success'>('input');
@@ -239,22 +241,29 @@ export const ConnectedCreateMarketModal: React.FC<ConnectedCreateMarketModalProp
 
     return (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
-            <div className="bg-white border-4 border-black shadow-hard max-w-lg w-full relative animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+            <div className={`border-4 border-black shadow-hard max-w-lg w-full relative animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col transition-all ${degenMode ? 'bg-white shadow-[12px_12px_0px_0px_#000]' : 'bg-white shadow-hard'}`}>
+                {degenMode && <div className="scanline opacity-10"></div>}
 
                 {/* Close Button - Inside modal */}
                 <button
                     onClick={handleClose}
-                    className="absolute top-2 right-2 bg-banger-pink text-white p-1.5 border-2 border-black shadow-hard-sm hover:bg-black transition-colors z-10"
+                    className={`absolute top-2 right-2 p-1.5 border-2 border-black transition-colors z-10 ${degenMode ? 'bg-[#ff00ff] text-white shadow-[2px_2px_0px_0px_#000] hover:bg-black' : 'bg-banger-pink text-white shadow-hard-sm hover:bg-black'}`}
                 >
                     <X size={16} strokeWidth={3} />
                 </button>
 
                 {/* Success State */}
                 {step === 'success' && (
-                    <div className="p-8 flex flex-col items-center justify-center bg-banger-yellow pattern-lines min-h-[300px]">
-                        <div className="bg-white border-4 border-black p-8 shadow-hard text-center">
-                            <div className="font-display text-4xl mb-2 text-black">MARKET CREATED!</div>
-                            <div className="font-mono text-lg">You're now the Scout 🔥</div>
+                    <div className={`p-8 flex flex-col items-center justify-center pattern-lines min-h-[300px] relative overflow-hidden ${degenMode ? 'bg-[#ff00ff]' : 'bg-banger-yellow'}`}>
+                        {degenMode && (
+                            <>
+                                <div className="absolute top-4 right-10 animate-bounce text-[#ecfd00]"><Trophy size={64} /></div>
+                                <div className="absolute bottom-10 left-4 animate-pulse text-[#00ffff]"><Sparkles size={48} /></div>
+                            </>
+                        )}
+                        <div className="bg-white border-4 border-black p-8 shadow-hard text-center relative z-10 transform -rotate-1">
+                            <div className="font-display text-4xl mb-2 text-black uppercase">Market Created!</div>
+                            <div className="font-mono text-lg text-black uppercase font-bold">You're now the Scout 🔥</div>
                             <div className="font-mono text-sm mt-2 text-gray-600">
                                 You received 10 YES + 10 NO shares
                             </div>
@@ -275,30 +284,30 @@ export const ConnectedCreateMarketModal: React.FC<ConnectedCreateMarketModalProp
                 {step === 'input' && (
                     <div className="p-6">
                         {/* Header */}
-                        <div className="flex items-center gap-3 mb-6 border-b-4 border-black pb-4">
-                            <div className="bg-banger-yellow p-2 border-2 border-black">
+                        <div className={`flex items-center gap-3 mb-6 border-b-4 border-black pb-4 transition-colors ${degenMode ? 'bg-[#00ffaa] p-2 -mx-6 -mt-6' : ''}`}>
+                            <div className={`p-2 border-2 border-black transition-colors ${degenMode ? 'bg-black text-white' : 'bg-banger-yellow text-black'}`}>
                                 <Zap size={24} />
                             </div>
-                            <h2 className="font-display text-2xl uppercase">Spot Alpha</h2>
+                            <h2 className={`font-display text-2xl uppercase ${degenMode ? 'text-black' : ''}`}>Spot Alpha</h2>
                         </div>
 
                         {/* Tweet URL Input */}
                         <div className="mb-6">
-                            <label className="font-mono text-xs font-bold uppercase text-gray-500 mb-2 block">
+                            <label className={`font-mono text-xs font-bold uppercase mb-2 block ${degenMode ? 'text-[#ff00ff]' : 'text-gray-500'}`}>
                                 Tweet URL
                             </label>
                             <div className="relative">
-                                <Twitter size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <Twitter size={20} className={`absolute left-3 top-1/2 -translate-y-1/2 ${degenMode ? 'text-[#2d1b54]' : 'text-gray-400'}`} />
                                 <input
                                     type="text"
                                     value={tweetUrl}
                                     onChange={(e) => setTweetUrl(e.target.value)}
                                     placeholder="https://x.com/user/status/..."
-                                    className="w-full border-4 border-black p-3 pl-10 font-mono text-sm focus:outline-none focus:border-banger-pink transition-colors"
+                                    className={`w-full border-4 border-black p-3 pl-10 font-mono text-sm focus:outline-none transition-all ${degenMode ? 'bg-[#f0f0f0] focus:bg-white focus:border-[#ff00ff]' : 'focus:border-banger-pink'}`}
                                 />
                             </div>
                             {tweetUrl && tweetId && (
-                                <div className="mt-2 font-mono text-xs text-green-600">
+                                <div className={`mt-2 font-mono text-xs ${degenMode ? 'text-[#00ffaa] bg-black px-2 py-1 inline-block' : 'text-green-600'}`}>
                                     ✓ Tweet ID: {tweetId} • @{authorHandle}
                                 </div>
                             )}
@@ -325,19 +334,18 @@ export const ConnectedCreateMarketModal: React.FC<ConnectedCreateMarketModalProp
                 {step === 'configure' && (
                     <div className="p-4 overflow-y-auto flex-1">
                         {/* Header */}
-                        <div className="flex items-center gap-3 mb-4 border-b-2 border-black pb-3">
-                            <div className="bg-banger-cyan p-1.5 border-2 border-black">
+                        <div className={`flex items-center gap-3 mb-4 border-b-2 border-black pb-3 transition-colors ${degenMode ? 'bg-[#ff00ff] p-2 -mx-4 -mt-4 mb-6' : ''}`}>
+                            <div className={`p-1.5 border-2 border-black transition-colors ${degenMode ? 'bg-[#ecfd00] text-black' : 'bg-banger-cyan text-black'}`}>
                                 <Zap size={20} />
                             </div>
                             <div>
-                                <h2 className="font-display text-xl uppercase">Configure Market</h2>
-                                <div className="font-mono text-xs text-gray-500">@{authorHandle}</div>
+                                <h2 className={`font-display text-xl uppercase ${degenMode ? 'text-black' : ''}`}>Configure Market</h2>
+                                <div className={`font-mono text-xs ${degenMode ? 'text-white bg-black px-1' : 'text-gray-500'}`}>@{authorHandle}</div>
                             </div>
                         </div>
 
-                        {/* Metric Selection */}
                         <div className="mb-4">
-                            <label className="font-mono text-[10px] font-bold uppercase text-gray-500 mb-2 block">
+                            <label className={`font-mono text-[10px] font-bold uppercase mb-2 block ${degenMode ? 'text-[#ff00ff]' : 'text-gray-500'}`}>
                                 What metric to track?
                             </label>
                             <div className="grid grid-cols-2 gap-2">
@@ -354,8 +362,8 @@ export const ConnectedCreateMarketModal: React.FC<ConnectedCreateMarketModalProp
                                                 ${isTaken
                                                     ? 'bg-gray-300 text-gray-400 cursor-not-allowed opacity-50 line-through'
                                                     : selectedMetric === option.type
-                                                        ? `${option.color} text-white shadow-arcade-pressed translate-x-0.5 translate-y-0.5`
-                                                        : 'bg-gray-100 hover:bg-gray-200 shadow-hard-sm'}
+                                                        ? (degenMode ? 'bg-[#00ffaa] text-black shadow-arcade-pressed translate-x-0.5 translate-y-0.5' : `${option.color} text-white shadow-arcade-pressed translate-x-0.5 translate-y-0.5`)
+                                                        : (degenMode ? 'bg-[#2d1b54] text-white hover:bg-black shadow-[4px_4px_0px_0px_#000]' : 'bg-gray-100 hover:bg-gray-200 shadow-hard-sm')}
                                             `}
                                         >
                                             {isTaken ? <Lock size={16} /> : <Icon size={16} />}
@@ -368,7 +376,7 @@ export const ConnectedCreateMarketModal: React.FC<ConnectedCreateMarketModalProp
 
                         {/* Category Selection - Inline compact layout */}
                         <div className="mb-4">
-                            <label className="font-mono text-[10px] font-bold uppercase text-gray-500 mb-2 block">
+                            <label className={`font-mono text-[10px] font-bold uppercase mb-2 block ${degenMode ? 'text-[#ff00ff]' : 'text-gray-500'}`}>
                                 Category
                             </label>
                             <div className="flex gap-2 flex-wrap">
@@ -379,8 +387,8 @@ export const ConnectedCreateMarketModal: React.FC<ConnectedCreateMarketModalProp
                                         className={`
                                             py-1.5 px-3 border-2 border-black transition-all font-mono text-[10px] font-bold
                                             ${selectedCategory === option.value
-                                                ? `${option.color} text-black shadow-arcade-pressed translate-x-0.5 translate-y-0.5`
-                                                : 'bg-white hover:bg-gray-100 shadow-hard-sm'}
+                                                ? (degenMode ? 'bg-[#00ffff] text-black shadow-arcade-pressed translate-x-0.5 translate-y-0.5' : `${option.color} text-black shadow-arcade-pressed translate-x-0.5 translate-y-0.5`)
+                                                : (degenMode ? 'bg-[#2d1b54] text-white hover:bg-black shadow-[2px_2px_0px_0px_#000]' : 'bg-white hover:bg-gray-100 shadow-hard-sm')}
                                         `}
                                     >
                                         {option.label}
@@ -391,14 +399,14 @@ export const ConnectedCreateMarketModal: React.FC<ConnectedCreateMarketModalProp
 
                         {/* Target Value */}
                         <div className="mb-4">
-                            <label className="font-mono text-[10px] font-bold uppercase text-gray-500 mb-1 block">
+                            <label className={`font-mono text-[10px] font-bold uppercase mb-1 block ${degenMode ? 'text-[#ff00ff]' : 'text-gray-500'}`}>
                                 Target to hit
                             </label>
                             <input
                                 type="number"
                                 value={targetValue}
                                 onChange={(e) => setTargetValue(e.target.value)}
-                                className="w-full border-2 border-black p-2 font-mono text-base focus:outline-none focus:border-banger-pink"
+                                className={`w-full border-2 border-black p-2 font-mono text-base focus:outline-none transition-all ${degenMode ? 'bg-black text-[#ecfd00] focus:border-[#00ffff]' : 'focus:border-banger-pink'}`}
                                 placeholder="1000000"
                             />
                             <div className="flex gap-1 mt-1">
@@ -408,8 +416,8 @@ export const ConnectedCreateMarketModal: React.FC<ConnectedCreateMarketModalProp
                                         onClick={() => setTargetValue(val)}
                                         className={`flex-1 border border-black py-0.5 font-mono text-[10px] transition-colors
                                             ${targetValue === val
-                                                ? 'bg-banger-cyan text-black border-banger-cyan font-bold'
-                                                : 'bg-gray-100 hover:bg-gray-200'}`}
+                                                ? (degenMode ? 'bg-[#00ffff] text-black border-black font-bold' : 'bg-banger-cyan text-black border-banger-cyan font-bold')
+                                                : (degenMode ? 'bg-[#2d1b54] text-white hover:bg-black' : 'bg-gray-100 hover:bg-gray-200')}`}
                                     >
                                         {Number(val) >= 1000000 ? `${Number(val) / 1000000}M` : `${Number(val) / 1000}K`}
                                     </button>
@@ -418,24 +426,24 @@ export const ConnectedCreateMarketModal: React.FC<ConnectedCreateMarketModalProp
                         </div>
 
                         {/* Cost Display */}
-                        <div className="bg-banger-black text-white p-3 border-2 border-black mb-4">
+                        <div className={`p-3 border-2 border-black mb-4 transition-colors ${degenMode ? 'bg-black text-white' : 'bg-banger-black text-white'}`}>
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <div className="font-mono text-[10px] text-gray-400">SCOUT FEE</div>
-                                    <div className="font-display text-xl flex items-center gap-1">
+                                    <div className={`font-mono text-[10px] ${degenMode ? 'text-[#ff00ff]' : 'text-gray-400'}`}>SCOUT FEE</div>
+                                    <div className={`font-display text-xl flex items-center gap-1 ${degenMode ? 'text-[#00ffaa]' : ''}`}>
                                         <DollarSign size={16} />
                                         {INITIAL_LIQUIDITY} USDC
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="font-mono text-[10px] text-gray-400">YOUR BALANCE</div>
-                                    <div className="font-mono text-base text-banger-yellow flex items-center gap-2">
+                                    <div className={`font-mono text-[10px] ${degenMode ? 'text-[#ff00ff]' : 'text-gray-400'}`}>YOUR BALANCE</div>
+                                    <div className={`font-mono text-base flex items-center gap-2 ${degenMode ? 'text-[#00ffff]' : 'text-banger-yellow'}`}>
                                         ${balanceDisplay}
                                         {isConnected && !hasEnoughBalance && (
                                             <button
                                                 onClick={handleMint}
                                                 disabled={isMintingLoading}
-                                                className="font-mono text-[10px] bg-banger-pink px-2 py-0.5 hover:bg-white hover:text-black transition-colors"
+                                                className={`font-mono text-[10px] px-2 py-0.5 hover:bg-white hover:text-black transition-colors ${degenMode ? 'bg-[#ff00ff] text-white' : 'bg-banger-pink text-white'}`}
                                             >
                                                 {isMintingLoading ? '...' : '+MINT'}
                                             </button>
@@ -443,7 +451,7 @@ export const ConnectedCreateMarketModal: React.FC<ConnectedCreateMarketModalProp
                                     </div>
                                 </div>
                             </div>
-                            <div className="mt-2 font-mono text-[10px] text-gray-400">
+                            <div className={`mt-2 font-mono text-[10px] ${degenMode ? 'text-gray-500' : 'text-gray-400'}`}>
                                 You'll receive: 10 YES + 10 NO shares (worth ${INITIAL_LIQUIDITY})
                             </div>
                         </div>

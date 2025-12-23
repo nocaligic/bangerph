@@ -34,6 +34,9 @@ const METRIC_ICONS: Record<string, React.ReactNode> = {
     COMMENTS: <MessageCircle size={16} />,
 };
 
+import { useDegenMode } from '../contexts/DegenContext';
+import { Sparkles, Zap, Trophy } from 'lucide-react';
+
 export const MetricBarChart: React.FC<MetricBarChartProps> = ({
     metricName,
     targetValue,
@@ -41,25 +44,25 @@ export const MetricBarChart: React.FC<MetricBarChartProps> = ({
     noPrice,
     tradeCount = 0
 }) => {
+    const { degenMode } = useDegenMode();
     // These are AMM prices from the contract, already in cents (which equals %)
-    // e.g., 42¢ = 42% probability
     const currentYesPrice = yesPrice;
     const currentNoPrice = noPrice;
-    const metricColor = METRIC_COLORS[metricName.toUpperCase()] || '#3b82f6';
+    const metricColor = degenMode ? '#ecfd00' : (METRIC_COLORS[metricName.toUpperCase()] || '#3b82f6');
     const metricIcon = METRIC_ICONS[metricName.toUpperCase()] || <Eye size={16} />;
 
     return (
-        <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col">
+        <div className={`border-4 border-black flex flex-col transition-all ${degenMode ? 'bg-[#ff00ff] shadow-[12px_12px_0px_0px_#000]' : 'bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]'}`}>
             {/* Header */}
-            <div className="bg-white border-b-4 border-black p-4 flex justify-between items-center">
+            <div className={`border-b-4 border-black p-4 flex justify-between items-center transition-colors ${degenMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
                 <div>
-                    <div className="font-mono text-gray-400 text-[10px] uppercase mb-0.5 tracking-wider">Market Sentiment</div>
-                    <div className="font-display text-xl md:text-2xl text-black uppercase leading-tight">
+                    <div className={`font-mono text-[10px] uppercase mb-0.5 tracking-wider ${degenMode ? 'text-[#00ffff]' : 'text-gray-400'}`}>Market Sentiment</div>
+                    <div className={`font-display text-xl md:text-2xl uppercase leading-tight ${degenMode ? 'text-[#ecfd00] drop-shadow-[2px_2px_0px_#ff00ff]' : ''}`}>
                         Will it hit {targetValue} {metricName}?
                     </div>
                 </div>
                 {/* BANGR Logo */}
-                <div className="bg-banger-yellow border-2 border-black p-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <div className={`border-2 border-black p-1 shadow-[2px_2px_0px_0px_#000] rotate-3 hover:-rotate-12 transition-transform ${degenMode ? 'bg-[#00ffff]' : 'bg-banger-yellow'}`}>
                     <img
                         src="/square-image.png"
                         alt="BANGR"
@@ -69,10 +72,16 @@ export const MetricBarChart: React.FC<MetricBarChartProps> = ({
             </div>
 
             {/* Chart Area */}
-            <div className="p-6 md:p-10 bg-[radial-gradient(#e5e7eb_1.5px,transparent_1.5px)] [background-size:20px_20px] relative overflow-hidden">
+            <div className={`p-6 md:p-10 relative overflow-hidden ${degenMode ? 'bg-[#2d1b54] bg-[radial-gradient(#ff00ff_1px,transparent_1px)] [background-size:15px_15px]' : 'bg-[radial-gradient(#e5e7eb_1.5px,transparent_1.5px)] [background-size:20px_20px]'}`}>
+                {degenMode && (
+                    <>
+                        <div className="absolute top-2 right-4 text-cyan-400 animate-pulse opacity-40 rotate-12"><Zap size={48} /></div>
+                        <div className="absolute bottom-10 left-4 text-yellow-400 animate-bounce opacity-40 -rotate-12"><Trophy size={40} /></div>
+                    </>
+                )}
                 {/* Background Text Watermark */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden opacity-[0.03]">
-                    <span className="text-[120px] font-black font-display uppercase -rotate-12 whitespace-nowrap">
+                <div className={`absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden ${degenMode ? 'opacity-[0.05]' : 'opacity-[0.03]'}`}>
+                    <span className={`text-[120px] font-black font-display uppercase -rotate-12 whitespace-nowrap ${degenMode ? 'text-[#ff00ff]' : ''}`}>
                         {metricName} {metricName} {metricName}
                     </span>
                 </div>
@@ -96,7 +105,7 @@ export const MetricBarChart: React.FC<MetricBarChartProps> = ({
                                 <div className="border-t border-gray-300 w-full" />
                                 <div className="border-t border-gray-200 border-dashed w-full" />
                                 <div className="border-t-2 border-black/20 w-full relative">
-                                    <span className="absolute -right-16 top-1/2 -translate-y-1/2 font-mono text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Equilibrium</span>
+                                    <span className={`absolute -right-16 top-1/2 -translate-y-1/2 font-mono text-[8px] font-bold uppercase tracking-tighter ${degenMode ? 'text-[#ff00ff]' : 'text-gray-400'}`}>Equilibrium</span>
                                 </div>
                                 <div className="border-t border-gray-200 border-dashed w-full" />
                                 <div className="h-0 w-full" />
@@ -110,11 +119,13 @@ export const MetricBarChart: React.FC<MetricBarChartProps> = ({
                                     <div className="absolute bottom-0 w-16 md:w-24 h-full bg-gray-50 border-x border-gray-100 pointer-events-none -z-10" />
 
                                     <div
-                                        className="w-16 md:w-24 border-4 border-black transition-all duration-1000 cubic-bezier(0.34, 1.56, 0.64, 1) relative shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] group-hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] group-hover:-translate-x-1 group-hover:-translate-y-1"
+                                        className={`w-16 md:w-24 border-4 border-black transition-all duration-1000 cubic-bezier(0.34, 1.56, 0.64, 1) relative ${degenMode ? 'shadow-[10px_10px_0px_0px_#000] group-hover:shadow-[14px_14px_0px_0px_#000]' : 'shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] group-hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]'}`}
                                         style={{
                                             height: `${Math.max(currentYesPrice, 2)}%`,
                                             backgroundColor: metricColor,
-                                            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)'
+                                            backgroundImage: degenMode
+                                                ? 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.2) 2px, rgba(0, 0, 0, 0.2) 4px)'
+                                                : 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)'
                                         }}
                                     >
                                         {/* Glow Effect */}
@@ -127,7 +138,7 @@ export const MetricBarChart: React.FC<MetricBarChartProps> = ({
 
                                         {currentYesPrice > 20 && (
                                             <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-                                                <span className="font-mono font-black text-xl md:text-3xl text-white drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                                                <span className={`font-mono font-black text-xl md:text-3xl drop-shadow-[2px_2px_0px_rgba(0,0,0,1)] ${degenMode ? 'text-black' : 'text-white'}`}>
                                                     {currentYesPrice}%
                                                 </span>
                                             </div>
@@ -139,7 +150,7 @@ export const MetricBarChart: React.FC<MetricBarChartProps> = ({
                                         <div className="w-8 h-8 rounded-none border-2 border-black flex items-center justify-center mb-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ backgroundColor: metricColor }}>
                                             <span className="text-white">{metricIcon}</span>
                                         </div>
-                                        <span className="font-display text-[10px] font-black uppercase tracking-widest" style={{ color: metricColor }}>YES SIDE</span>
+                                        <span className={`font-display text-[10px] font-black uppercase tracking-widest ${degenMode ? 'drop-shadow-[1px_1px_0px_#000]' : ''}`} style={{ color: metricColor }}>YES SIDE</span>
                                     </div>
                                 </div>
 
@@ -149,9 +160,10 @@ export const MetricBarChart: React.FC<MetricBarChartProps> = ({
                                     <div className="absolute bottom-0 w-16 md:w-24 h-full bg-gray-50 border-x border-gray-100 pointer-events-none -z-10" />
 
                                     <div
-                                        className="w-16 md:w-24 bg-black border-4 border-black transition-all duration-1000 cubic-bezier(0.34, 1.56, 0.64, 1) relative shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] group-hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] group-hover:-translate-x-1 group-hover:-translate-y-1"
+                                        className={`w-16 md:w-24 border-4 border-black transition-all duration-1000 cubic-bezier(0.34, 1.56, 0.64, 1) relative ${degenMode ? 'shadow-[10px_10px_0px_0px_#000] group-hover:shadow-[14px_14px_0px_0px_#000]' : 'shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] group-hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]'}`}
                                         style={{
                                             height: `${Math.max(currentNoPrice, 2)}%`,
+                                            backgroundColor: degenMode ? '#ff00ff' : 'black',
                                             backgroundImage: 'repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 20px)'
                                         }}
                                     >
@@ -174,7 +186,7 @@ export const MetricBarChart: React.FC<MetricBarChartProps> = ({
                                         <div className="w-8 h-8 rounded-none bg-black border-2 border-black flex items-center justify-center mb-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                                             <span className="text-white text-xs font-bold">✕</span>
                                         </div>
-                                        <span className="font-display text-[10px] font-black uppercase tracking-widest text-black/40">NO SIDE</span>
+                                        <span className={`font-display text-[10px] font-black uppercase tracking-widest ${degenMode ? 'text-black' : 'text-black/40'}`}>NO SIDE</span>
                                     </div>
                                 </div>
                             </div>
@@ -187,12 +199,12 @@ export const MetricBarChart: React.FC<MetricBarChartProps> = ({
             <div className="h-16" />
 
             {/* Footer */}
-            <div className="border-t-4 border-black p-3 flex justify-between items-center bg-white mt-auto">
+            <div className={`border-t-4 border-black p-3 flex justify-between items-center mt-auto ${degenMode ? 'bg-white' : 'bg-white'}`}>
                 <div className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                    <span className="font-mono text-[10px] text-gray-400 uppercase tracking-widest">Live Activity Network</span>
+                    <span className={`font-mono text-[10px] uppercase tracking-widest ${degenMode ? 'text-black font-bold' : 'text-gray-400'}`}>Live Activity Network</span>
                 </div>
-                <div className="font-mono text-[10px] font-bold text-black border-2 border-black px-2 py-0.5 bg-gray-100">
+                <div className={`font-mono text-[10px] font-bold border-2 border-black px-2 py-0.5 ${degenMode ? 'bg-[#ecfd00] text-black shadow-[2px_2px_0px_0px_#000]' : 'bg-gray-100 text-black'}`}>
                     {tradeCount} TRADES
                 </div>
             </div>
