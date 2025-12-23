@@ -4,7 +4,10 @@
 
 import { useState, useEffect } from 'react';
 
-const INDEXER_API_URL = 'http://localhost:8788';
+// Use local worker in development, deployed worker in production
+const INDEXER_API_URL = (import.meta as any).env?.PROD
+    ? 'https://bangr-indexer.nocaligic.workers.dev'
+    : 'http://localhost:8788';
 
 export interface GlobalActivityItem {
     type: 'TRADE' | 'CREATE';

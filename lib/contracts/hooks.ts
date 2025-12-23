@@ -16,7 +16,9 @@ const contracts = CONTRACTS.bscTestnet;
 const CONTRACT_DEPLOYMENT_BLOCK = BigInt(80023861);
 
 // Indexer API URL (local dev or deployed)
-const INDEXER_API_URL = 'http://localhost:8788';
+const INDEXER_API_URL = (import.meta as any).env?.PROD
+    ? 'https://bangr-indexer.nocaligic.workers.dev'
+    : 'http://localhost:8788';
 
 // ============ TYPES ============
 

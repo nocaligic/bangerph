@@ -8,7 +8,7 @@
 
 // Use local worker in development, deployed worker in production
 const TWITTER_PROXY_URL = (import.meta as any).env?.PROD
-    ? 'https://twitter-proxy.YOUR_SUBDOMAIN.workers.dev'  // TODO: Update after deployment
+    ? 'https://twitter-proxy.nocaligic.workers.dev'
     : 'http://localhost:8787';
 
 // Simple in-memory cache

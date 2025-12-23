@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// .wrangler/tmp/bundle-cnygzB/checked-fetch.js
+// .wrangler/tmp/bundle-Ww8gr3/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -27,7 +27,7 @@ globalThis.fetch = new Proxy(globalThis.fetch, {
   }
 });
 
-// .wrangler/tmp/bundle-cnygzB/strip-cf-connecting-ip-header.js
+// .wrangler/tmp/bundle-Ww8gr3/strip-cf-connecting-ip-header.js
 function stripCfConnectingIPHeader(input, init) {
   const request = new Request(input, init);
   request.headers.delete("CF-Connecting-IP");
@@ -88,13 +88,24 @@ var src_default = {
         }
         return await getCreatedMarkets(env, address);
       }
+      if (path.startsWith("/market-trades/")) {
+        const marketIdStr = path.split("/market-trades/")[1];
+        const marketId = parseInt(marketIdStr);
+        if (isNaN(marketId)) {
+          return jsonResponse({ error: "Valid market ID required" }, 400);
+        }
+        return await getMarketTrades(env, marketId);
+      }
       if (path === "/index") {
         const result = await indexEvents(env);
         return jsonResponse(result);
       }
+      if (path === "/global-activity") {
+        return await getGlobalActivity(env);
+      }
       return jsonResponse({
         error: "Not found",
-        endpoints: ["/trades/:address", "/markets/:address", "/stats", "/health"]
+        endpoints: ["/trades/:address", "/markets/:address", "/market-trades/:marketId", "/global-activity", "/stats", "/health"]
       }, 404);
     } catch (error) {
       console.error("Worker error:", error);
@@ -178,6 +189,116 @@ async function getStats(env) {
   });
 }
 __name(getStats, "getStats");
+async function getMarketTrades(env, marketId) {
+  const { results } = await env.DB.prepare(`
+        SELECT 
+            market_id as marketId,
+            buyer,
+            is_yes as isYes,
+            usdc_amount as usdcAmount,
+            shares_received as sharesReceived,
+            tx_hash as transactionHash,
+            block_number as blockNumber,
+            indexed_at as indexedAt
+        FROM trades 
+        WHERE market_id = ?
+        ORDER BY block_number ASC
+        LIMIT 200
+    `).bind(marketId).all();
+  let yesVolume = 0;
+  let noVolume = 0;
+  const priceHistory = [];
+  for (const trade of results || []) {
+    const amount = parseFloat(trade.usdcAmount) / 1e6;
+    if (trade.isYes) {
+      yesVolume += amount;
+    } else {
+      noVolume += amount;
+    }
+    const totalVolume = yesVolume + noVolume;
+    const yesPrice = totalVolume > 0 ? Math.round(yesVolume / totalVolume * 100) : 50;
+    const noPrice = 100 - yesPrice;
+    priceHistory.push({
+      blockNumber: trade.blockNumber,
+      yesPrice,
+      noPrice,
+      isYes: !!trade.isYes,
+      amount: amount.toFixed(2),
+      buyer: trade.buyer
+    });
+  }
+  return jsonResponse({
+    success: true,
+    marketId,
+    count: results?.length || 0,
+    trades: results || [],
+    priceHistory,
+    currentYesPrice: priceHistory.length > 0 ? priceHistory[priceHistory.length - 1].yesPrice : 50,
+    currentNoPrice: priceHistory.length > 0 ? priceHistory[priceHistory.length - 1].noPrice : 50
+  });
+}
+__name(getMarketTrades, "getMarketTrades");
+async function getGlobalActivity(env) {
+  const { results: trades } = await env.DB.prepare(`
+        SELECT 
+            t.market_id as marketId,
+            t.buyer,
+            t.is_yes as isYes,
+            t.usdc_amount as usdcAmount,
+            t.tx_hash as transactionHash,
+            t.block_number as blockNumber,
+            t.indexed_at as indexedAt,
+            m.metric as metric,
+            'TRADE' as activityType
+        FROM trades t
+        LEFT JOIN created_markets m ON t.market_id = m.market_id
+        ORDER BY t.block_number DESC
+        LIMIT 50
+    `).all();
+  const { results: markets } = await env.DB.prepare(`
+        SELECT 
+            market_id as marketId,
+            creator,
+            metric,
+            target_value as targetValue,
+            tx_hash as transactionHash,
+            block_number as blockNumber,
+            indexed_at as indexedAt,
+            'CREATE' as activityType
+        FROM created_markets
+        ORDER BY block_number DESC
+        LIMIT 20
+    `).all();
+  const allActivity = [
+    ...(trades || []).map((t) => ({
+      type: "TRADE",
+      marketId: t.marketId,
+      user: t.buyer,
+      isYes: !!t.isYes,
+      amount: (parseFloat(t.usdcAmount) / 1e6).toFixed(0),
+      metric: t.metric,
+      txHash: t.transactionHash,
+      blockNumber: t.blockNumber,
+      timestamp: t.indexedAt
+    })),
+    ...(markets || []).map((m) => ({
+      type: "CREATE",
+      marketId: m.marketId,
+      user: m.creator,
+      metric: m.metric,
+      targetValue: m.targetValue,
+      txHash: m.transactionHash,
+      blockNumber: m.blockNumber,
+      timestamp: m.indexedAt
+    }))
+  ].sort((a, b) => b.blockNumber - a.blockNumber).slice(0, 50);
+  return jsonResponse({
+    success: true,
+    count: allActivity.length,
+    activity: allActivity
+  });
+}
+__name(getGlobalActivity, "getGlobalActivity");
 async function indexEvents(env) {
   const startTime = Date.now();
   const syncState = await env.DB.prepare(
@@ -437,7 +558,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-cnygzB/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-Ww8gr3/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -469,7 +590,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-cnygzB/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-Ww8gr3/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
