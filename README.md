@@ -8,8 +8,6 @@
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.20-blue)](https://soliditylang.org/)
 [![React](https://img.shields.io/badge/React-18-61DAFB)](https://reactjs.org/)
 
-<img src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" alt="BANGR Banner" width="800"/>
-
 **Spot viral content early. Buy prediction tickets. Profit when the hype hits the target.**
 
 </div>
