@@ -141,12 +141,13 @@ export async function fetchTweetData(tweetId: string): Promise<TweetData> {
             // Extract quote tweet
             let quotedTweet = null;
             if (tweet.quotedTweet) {
+                const quotedAuthor = tweet.quotedTweet.author || {};
                 quotedTweet = {
                     tweetId: tweet.quotedTweet.id,
                     text: tweet.quotedTweet.text,
-                    authorHandle: tweet.quotedTweet.author?.userName || 'unknown',
-                    authorName: tweet.quotedTweet.author?.name || 'Unknown',
-                    avatarUrl: null, // Basic info for now
+                    authorHandle: quotedAuthor.userName || 'unknown',
+                    authorName: quotedAuthor.name || 'Unknown',
+                    avatarUrl: quotedAuthor.profilePicture || null,
                 };
             }
 

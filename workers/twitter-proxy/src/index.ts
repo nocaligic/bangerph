@@ -136,7 +136,12 @@ function formatTweetResponse(apiResponse: any) {
         quotedTweet: tweet.quoted_tweet ? {
             id: tweet.quoted_tweet.id,
             text: tweet.quoted_tweet.text,
-            author: tweet.quoted_tweet.author?.userName,
+            author: {
+                id: tweet.quoted_tweet.author?.id,
+                name: tweet.quoted_tweet.author?.name,
+                userName: tweet.quoted_tweet.author?.userName,
+                profilePicture: tweet.quoted_tweet.author?.profilePicture,
+            },
         } : null,
     }));
 
