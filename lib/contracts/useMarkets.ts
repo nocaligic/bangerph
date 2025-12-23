@@ -30,6 +30,13 @@ export interface ContractMarket {
     totalVolume: bigint;
     // Parsed media for convenience
     media: MediaItem[];
+    // Quoted tweet data (if any)
+    quotedTweet?: {
+        id: string;
+        text: string;
+        authorHandle: string;
+        authorName: string;
+    } | null;
 }
 
 export interface MediaItem {
@@ -64,6 +71,16 @@ export function useMarkets() {
         })),
     });
 
+    // Also fetch all quoted tweets
+    const { data: quotedTweetsData } = useReadContracts({
+        contracts: marketIds.map(id => ({
+            address: contracts.marketFactory as `0x${string}`,
+            abi: MARKET_FACTORY_ABI,
+            functionName: 'getQuotedTweet',
+            args: [BigInt(id)],
+        })),
+    });
+
     // Parse the results
     const markets: ContractMarket[] = [];
 
@@ -82,6 +99,20 @@ export function useMarkets() {
                     }
                 } catch (e) {
                     // Invalid JSON, ignore
+                }
+
+                // Parse quoted tweet if exists
+                let quotedTweet = null;
+                if (quotedTweetsData && quotedTweetsData[i]?.status === 'success') {
+                    const q = quotedTweetsData[i].result as any;
+                    if (q && q[0]) { // hasQuote
+                        quotedTweet = {
+                            id: q[1] || '',
+                            text: q[2] || '',
+                            authorHandle: q[3] || '',
+                            authorName: q[4] || '',
+                        };
+                    }
                 }
 
                 markets.push({
@@ -103,6 +134,7 @@ export function useMarkets() {
                     noPrice: Number(m[14]) || 50,
                     totalVolume: m[15] || BigInt(0),
                     media,
+                    quotedTweet,
                 });
             }
         }

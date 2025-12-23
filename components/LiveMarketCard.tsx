@@ -71,7 +71,21 @@ export const LiveMarketCard: React.FC<LiveMarketCardProps> = ({ market, onClick,
     }, [market.tweetId]);
 
     // Convert on-chain data to Tweet format for TweetDisplay
-    // Use enhanced data if available (includes quoted tweets)
+    // Prioritize on-chain quoted tweet data, fallback to API data
+    const quotedTweetDisplay = market.quotedTweet ? {
+        authorName: market.quotedTweet.authorName,
+        authorHandle: market.quotedTweet.authorHandle,
+        avatarUrl: '', // On-chain doesn't store avatar, could fetch from API
+        content: market.quotedTweet.text,
+        timestamp: '',
+    } : (enhancedTweet?.quotedTweet ? {
+        authorName: enhancedTweet.quotedTweet.authorName,
+        authorHandle: enhancedTweet.quotedTweet.authorHandle,
+        avatarUrl: enhancedTweet.quotedTweet.avatarUrl || '',
+        content: enhancedTweet.quotedTweet.text,
+        timestamp: '',
+    } : undefined);
+
     const tweetForDisplay = {
         authorName: enhancedTweet?.authorName || market.authorName,
         authorHandle: enhancedTweet?.authorHandle || market.authorHandle,
@@ -81,14 +95,8 @@ export const LiveMarketCard: React.FC<LiveMarketCardProps> = ({ market, onClick,
         imageUrl: enhancedTweet?.imageUrl || (market.media.length > 0 && market.media[0].type === 'image'
             ? market.media[0].url
             : undefined),
-        // Include quoted tweet if available from API
-        quotedTweet: enhancedTweet?.quotedTweet ? {
-            authorName: enhancedTweet.quotedTweet.authorName,
-            authorHandle: enhancedTweet.quotedTweet.authorHandle,
-            avatarUrl: enhancedTweet.quotedTweet.avatarUrl || '',
-            content: enhancedTweet.quotedTweet.text,
-            timestamp: '',
-        } : undefined,
+        // Include quoted tweet from on-chain data or API
+        quotedTweet: quotedTweetDisplay,
     };
 
     return (

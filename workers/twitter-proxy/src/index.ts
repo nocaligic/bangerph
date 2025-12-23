@@ -133,16 +133,21 @@ function formatTweetResponse(apiResponse: any) {
             type: m.type === 'photo' ? 'IMAGE' : 'VIDEO',
             url: m.media_url_https || m.url,
         })),
-        quotedTweet: tweet.quoted_tweet ? {
-            id: tweet.quoted_tweet.id,
-            text: tweet.quoted_tweet.text,
-            author: {
-                id: tweet.quoted_tweet.author?.id,
-                name: tweet.quoted_tweet.author?.name,
-                userName: tweet.quoted_tweet.author?.userName,
-                profilePicture: tweet.quoted_tweet.author?.profilePicture,
-            },
-        } : null,
+        // Handle both field naming conventions (API uses quoted_tweet)
+        quotedTweet: (() => {
+            const qt = tweet.quoted_tweet || tweet.quotedTweet;
+            if (!qt) return null;
+            return {
+                id: qt.id,
+                text: qt.text,
+                author: {
+                    id: qt.author?.id,
+                    name: qt.author?.name,
+                    userName: qt.author?.userName,
+                    profilePicture: qt.author?.profilePicture,
+                },
+            };
+        })(),
     }));
 
     return {
