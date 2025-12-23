@@ -365,20 +365,23 @@ export default function App() {
               </div>
             ) : liveMarkets.length > 0 ? (
               <div className="columns-1 md:columns-2 lg:columns-3 gap-8">
-                {[...liveMarkets].reverse().map((market) => {
-                  const METRIC_NAMES = ['VIEWS', 'LIKES', 'RETWEETS', 'COMMENTS'];
-                  const metricName = METRIC_NAMES[market.metric] || 'VIEWS';
-                  return (
-                    <div key={market.id} className="break-inside-avoid mb-8">
-                      <LiveMarketCard
-                        market={market}
-                        onClick={() => handleLiveMarketClick(market.id)}
-                        onBuyYes={() => setQuickTrade({ marketId: market.id, side: 'YES', metricName })}
-                        onBuyNo={() => setQuickTrade({ marketId: market.id, side: 'NO', metricName })}
-                      />
-                    </div>
-                  );
-                })}
+                {[...liveMarkets]
+                  .reverse()
+                  .filter((market) => activeCategory === 'ALL' || market.category?.toUpperCase() === activeCategory)
+                  .map((market) => {
+                    const METRIC_NAMES = ['VIEWS', 'LIKES', 'RETWEETS', 'COMMENTS'];
+                    const metricName = METRIC_NAMES[market.metric] || 'VIEWS';
+                    return (
+                      <div key={market.id} className="break-inside-avoid mb-8">
+                        <LiveMarketCard
+                          market={market}
+                          onClick={() => handleLiveMarketClick(market.id)}
+                          onBuyYes={() => setQuickTrade({ marketId: market.id, side: 'YES', metricName })}
+                          onBuyNo={() => setQuickTrade({ marketId: market.id, side: 'NO', metricName })}
+                        />
+                      </div>
+                    );
+                  })}
               </div>
             ) : (
               <div className="text-center py-12 border-4 border-dashed border-gray-300 rounded-lg">
