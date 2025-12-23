@@ -71,7 +71,7 @@ export const GlobalPulse: React.FC = () => {
   };
 
   return (
-    <div className="w-full bg-black h-full flex flex-col font-mono text-xs overflow-hidden min-h-[400px]">
+    <div className="w-full bg-black h-full flex flex-col font-mono text-xs overflow-hidden max-h-[500px]">
       {/* Header */}
       <div className="bg-white text-black p-2 font-display text-[10px] uppercase flex justify-between items-center border-b-2 border-black">
         <div className="flex items-center gap-2">
@@ -85,7 +85,7 @@ export const GlobalPulse: React.FC = () => {
       </div>
 
       {/* Activity Feed - Scrollable, fills remaining space */}
-      <div className="p-3 space-y-3 flex-1 overflow-y-auto">
+      <div className="p-3 space-y-3 flex-1 overflow-y-auto no-scrollbar">
         {isLoading && !data ? (
           <div className="flex items-center justify-center h-32">
             <div className="text-gray-500 text-[10px] animate-pulse">Loading activity...</div>

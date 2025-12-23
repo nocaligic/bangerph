@@ -107,6 +107,20 @@ export const ConnectedCreateMarketModal: React.FC<ConnectedCreateMarketModalProp
 
     const balanceDisplay = usdcBalance ? formatUsdc(usdcBalance) : '0';
 
+    // Reset modal state when reopened
+    useEffect(() => {
+        if (isOpen) {
+            setTweetUrl('');
+            setStep('input');
+            setError(null);
+            setFetchError(null);
+            setTweetData(null);
+            setSelectedMetric(MetricType.VIEWS);
+            setSelectedCategory('SHITPOST');
+            setTargetValue('1000000');
+        }
+    }, [isOpen]);
+
     // Watch for success
     useEffect(() => {
         if (createSuccess) {

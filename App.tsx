@@ -364,12 +364,12 @@ export default function App() {
                 <p className="font-mono text-gray-500">Loading markets from contract...</p>
               </div>
             ) : liveMarkets.length > 0 ? (
-              <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-0">
-                {liveMarkets.map((market) => {
+              <div className="columns-1 md:columns-2 lg:columns-3 gap-8">
+                {[...liveMarkets].reverse().map((market) => {
                   const METRIC_NAMES = ['VIEWS', 'LIKES', 'RETWEETS', 'COMMENTS'];
                   const metricName = METRIC_NAMES[market.metric] || 'VIEWS';
                   return (
-                    <div key={market.id} className="break-inside-avoid mb-6">
+                    <div key={market.id} className="break-inside-avoid mb-8">
                       <LiveMarketCard
                         market={market}
                         onClick={() => handleLiveMarketClick(market.id)}
