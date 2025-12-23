@@ -3,10 +3,11 @@
  * Uses on-chain tweet data instead of API fetching
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ContractMarket } from '../lib/contracts/useMarkets';
 import { TweetDisplay } from './TweetDisplay';
 import { Clock, ThumbsUp, ThumbsDown, Eye, Heart, MessageCircle, Repeat2, Flame, Zap } from 'lucide-react';
+import { fetchTweetData, TweetData } from '../services/twitterService';
 
 interface LiveMarketCardProps {
     market: ContractMarket;
@@ -58,16 +59,36 @@ export const LiveMarketCard: React.FC<LiveMarketCardProps> = ({ market, onClick,
 
     const isActive = market.status === 0;
 
+    // Fetch enhanced tweet data (including quoted tweets) from Twitter API
+    const [enhancedTweet, setEnhancedTweet] = useState<TweetData | null>(null);
+
+    useEffect(() => {
+        if (market.tweetId) {
+            fetchTweetData(market.tweetId)
+                .then(data => setEnhancedTweet(data))
+                .catch(() => { }); // Silently fail - use on-chain data as fallback
+        }
+    }, [market.tweetId]);
+
     // Convert on-chain data to Tweet format for TweetDisplay
+    // Use enhanced data if available (includes quoted tweets)
     const tweetForDisplay = {
-        authorName: market.authorName,
-        authorHandle: market.authorHandle,
-        avatarUrl: market.avatarUrl || '',
-        content: market.tweetText,
+        authorName: enhancedTweet?.authorName || market.authorName,
+        authorHandle: enhancedTweet?.authorHandle || market.authorHandle,
+        avatarUrl: enhancedTweet?.avatarUrl || market.avatarUrl || '',
+        content: enhancedTweet?.text || market.tweetText,
         timestamp: '',
-        imageUrl: market.media.length > 0 && market.media[0].type === 'image'
+        imageUrl: enhancedTweet?.imageUrl || (market.media.length > 0 && market.media[0].type === 'image'
             ? market.media[0].url
-            : undefined,
+            : undefined),
+        // Include quoted tweet if available from API
+        quotedTweet: enhancedTweet?.quotedTweet ? {
+            authorName: enhancedTweet.quotedTweet.authorName,
+            authorHandle: enhancedTweet.quotedTweet.authorHandle,
+            avatarUrl: enhancedTweet.quotedTweet.avatarUrl || '',
+            content: enhancedTweet.quotedTweet.text,
+            timestamp: '',
+        } : undefined,
     };
 
     return (
