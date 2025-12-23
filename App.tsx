@@ -297,21 +297,21 @@ export default function App() {
             <div className={`lg:col-span-7 p-6 md:p-12 flex flex-col justify-center border-b-4 lg:border-b-0 lg:border-r-4 border-black relative overflow-hidden ${degenMode ? 'bg-transparent' : 'bg-pattern-grid'}`}>
               <div className="relative z-10">
                 <div className={`inline-block font-mono text-[10px] px-2 py-0.5 mb-4 transform -rotate-1 shadow-[2px_2px_0px_0px_#ecfd00] ${degenMode ? 'bg-white text-black border-2 border-black' : 'bg-black text-white'}`}>
-                  TRADING PROTOCOL v1.0
+                  DEGENS ONLY ☠️
                 </div>
                 <h1 className={`font-display text-4xl md:text-6xl lg:text-7xl uppercase leading-[0.85] mb-6 tracking-tighter ${degenMode ? 'text-banger-yellow' : ''}`}>
                   BET ON <br />
                   <span className={degenMode ? 'text-white' : 'text-banger-pink'}>VIRAL</span> METRICS
                 </h1>
                 <p className={`font-mono text-xs md:text-sm max-w-md mb-8 border-l-4 pl-4 ${degenMode ? 'border-banger-yellow text-white' : 'border-banger-cyan text-gray-600'}`}>
-                  The Nasdaq for Twitter. Spot viral content early, buy prediction tickets, and profit when the hype hits the target.
+                  Bet on the timeline. Find tweets before they moon, buy YES or NO, and collect when the engagement hits. If it BANGS, you BANK.
                 </p>
                 <div className="flex flex-wrap gap-4">
                   <BrutalistButton size="md" className="flex items-center gap-2" onClick={() => marketsRef.current?.scrollIntoView({ behavior: 'smooth' })}>
                     EXPLORE <ArrowRight size={18} />
                   </BrutalistButton>
                   <BrutalistButton size="md" variant="outline" onClick={() => setIsCreateModalOpen(true)}>
-                    SPOT ALPHA
+                    CREATE MARKET
                   </BrutalistButton>
                 </div>
               </div>
